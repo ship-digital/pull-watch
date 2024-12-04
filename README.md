@@ -17,7 +17,10 @@ A hobbyist-grade tool that watches a git repository for changes and runs a speci
 Your friendly neighborhood Git repository watchdog! 🐕
 Guards your watch, your time, avoids wasting it, get it? No? Never mind. I am just a dad. It's muscle memory at this point!
 
-Never miss a change again - pull-watch sits patiently by your repository, waiting to spring into action whenever something new comes along. Perfect for developers who want their local environment to stay in sync without the hassle of manual updates.
+![Which way?](./assets/meme_castles.png)
+> **How it started**: 🔄 `git pull` && `./run.sh` && CTRL/CMD+C && `git pull` && `./run.sh` && CTRL/CMD+C && ♾️... 😵
+>
+> **How it's going**: `pull-watch -- ./run.sh`
 
 ## ✨ Features
 
