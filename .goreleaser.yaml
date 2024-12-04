@@ -57,9 +57,19 @@ brews:
     homepage: "https://github.com/ship-digital/pull-watch"
     description: "A tool that watches a git repository for changes and runs a specified command"
     license: "MIT"
-    tap:
+    repository:
       owner: ship-digital
       name: homebrew-tap
-    folder: Formula
+    directory: Formula
     install: |
       bin.install "pull-watch"
+
+upx:
+  - enabled: true
+    compress: "best"
+    lzma: true
+    brute: true
+
+    # Only compress Linux and Windows builds
+    goos: [linux, windows]
+    goarch: [amd64, arm64]

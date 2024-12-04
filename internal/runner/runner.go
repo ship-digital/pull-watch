@@ -168,7 +168,19 @@ func Watch(cfg *config.Config) error {
 			if cfg.Verbose {
 				logger.Info("Received signal %v, shutting down...", sig)
 			}
-			return pm.Stop(cfg)
+			// Stop the process and wait for it to finish before exiting
+			if err := pm.Stop(cfg); err != nil {
+				logger.Error("Error stopping process: %v", err)
+				return err
+			}
+			// Wait for process to fully terminate
+			select {
+			case <-pm.doneChan:
+				return nil
+			case <-time.After(5 * time.Second):
+				// Force exit if process doesn't terminate in time
+				return fmt.Errorf("process failed to terminate gracefully")
+			}
 		}
 	}
 }

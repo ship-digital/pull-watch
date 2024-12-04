@@ -6,3 +6,6 @@ dist/pull-watch_darwin_arm64/pull-watch
 dist/pull-watch_linux_amd64_v1/pull-watch
 dist/pull-watch_linux_arm64/pull-watch
 dist/pull-watch_windows_amd64_v1/pull-watch.exe
+dist/pull-watch_linux_amd64_v1/pull-watch.upx
+dist/pull-watch_linux_arm64/pull-watch.upx
+dist/pull-watch_windows_amd64_v1/pull-watch.upx
