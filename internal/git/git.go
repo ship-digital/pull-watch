@@ -39,6 +39,20 @@ func (r *Repository) GetLatestCommit(ctx context.Context) (string, error) {
 	return r.execGitCmd(ctx, "rev-parse", "HEAD")
 }
 
+func (r *Repository) Fetch(ctx context.Context) error {
+	cmd := exec.CommandContext(ctx, "git", "-C", r.dir, "fetch")
+	return cmd.Run()
+}
+
 func (r *Repository) Pull(ctx context.Context) (string, error) {
 	return r.execGitCmd(ctx, "pull")
+}
+
+func (r *Repository) GetRemoteCommit(ctx context.Context) (string, error) {
+	cmd := exec.CommandContext(ctx, "git", "-C", r.dir, "rev-parse", "@{u}")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(output)), nil
 }

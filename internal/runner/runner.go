@@ -18,9 +18,11 @@ import (
 )
 
 var (
-	prefix     = color.New(color.FgCyan).Sprint("[pull-watch] ")
-	errorColor = color.New(color.FgRed).SprintFunc()
-	infoColor  = color.New(color.FgGreen).SprintFunc()
+	prefix         = color.New(color.FgCyan).Sprint("[pull-watch] ")
+	errorColor     = color.New(color.FgRed).SprintFunc()
+	infoColor      = color.New(color.FgGreen).SprintFunc()
+	initialBackoff = 5 * time.Second
+	maxBackoff     = 5 * time.Minute
 )
 
 // Custom logger that adds our prefix
@@ -43,16 +45,22 @@ func (l *prefixLogger) Info(format string, v ...interface{}) {
 }
 
 type ProcessManager struct {
-	mu       sync.Mutex
-	cmd      *exec.Cmd
-	doneChan chan struct{}
-	stopped  bool
-	logger   *prefixLogger
+	mu          sync.Mutex
+	cmd         *exec.Cmd
+	doneChan    chan struct{}
+	stopped     bool
+	logger      *prefixLogger
+	lastLogTime time.Time
+	backoff     time.Duration
 }
 
 func (pm *ProcessManager) Start(cfg *config.Config) error {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
+
+	// Reset backoff when starting new process
+	pm.backoff = 0
+	pm.lastLogTime = time.Time{}
 
 	// Make sure any previous process is fully cleaned up
 	if pm.cmd != nil {
@@ -159,8 +167,24 @@ func Watch(cfg *config.Config) error {
 		case <-pm.doneChan:
 			if !processExited {
 				processExited = true
-				if cfg.Verbose {
-					logger.Info("Process exited, waiting for changes before restart")
+				now := time.Now()
+
+				// Initialize backoff on first exit
+				if pm.backoff == 0 {
+					pm.backoff = initialBackoff
+				}
+
+				// Log only if enough time has passed
+				if now.Sub(pm.lastLogTime) >= pm.backoff {
+					if cfg.Verbose {
+						logger.Info("Process exited, waiting for changes before restart")
+					}
+					pm.lastLogTime = now
+					// Increase backoff for next time (cap at maxBackoff)
+					pm.backoff = time.Duration(float64(pm.backoff) * 1.5)
+					if pm.backoff > maxBackoff {
+						pm.backoff = maxBackoff
+					}
 				}
 			}
 
@@ -186,34 +210,45 @@ func Watch(cfg *config.Config) error {
 }
 
 func checkAndUpdate(ctx context.Context, cfg *config.Config, repo *git.Repository, lastCommit *string, pm *ProcessManager, shouldStart bool) error {
-	pullOutput, err := repo.Pull(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to pull changes: %w", err)
+	// Fetch latest without merging
+	if err := repo.Fetch(ctx); err != nil {
+		return fmt.Errorf("failed to fetch changes: %w", err)
 	}
 
-	currentCommit, err := repo.GetLatestCommit(ctx)
+	// Get local and remote hashes
+	localHash, err := repo.GetLatestCommit(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get current commit: %w", err)
+		return fmt.Errorf("failed to get local commit: %w", err)
 	}
 
-	hasChanges := currentCommit != *lastCommit
+	remoteHash, err := repo.GetRemoteCommit(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get remote commit: %w", err)
+	}
 
-	// Only restart if there are actual changes
-	if hasChanges {
+	// Only pull and restart if remote hash differs
+	if remoteHash != localHash {
 		if cfg.Verbose {
 			pm.logger.Info("\nChanges detected!")
-			pm.logger.Info("Previous commit: %s", *lastCommit)
-			pm.logger.Info("New commit: %s", currentCommit)
+			pm.logger.Info("Local commit: %s", localHash)
+			pm.logger.Info("Remote commit: %s", remoteHash)
+		}
+
+		pullOutput, err := repo.Pull(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to pull changes: %w", err)
+		}
+
+		if cfg.Verbose {
 			pm.logger.Info("Pull output: %s", pullOutput)
 		}
 
-		*lastCommit = currentCommit
+		*lastCommit = remoteHash
 
 		if err := pm.Stop(cfg); err != nil && cfg.Verbose {
 			pm.logger.Error("Error stopping process: %v", err)
 		}
 
-		// Add a small delay to ensure process cleanup
 		time.Sleep(100 * time.Millisecond)
 
 		if err := pm.Start(cfg); err != nil {
