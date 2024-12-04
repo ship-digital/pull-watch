@@ -1,15 +1,16 @@
-# pull-watch
 
 ```
-               _ _                 _       _
-              | | |               | |     | |
-     _ __  _  | | |  __      ____ | |_ ___| |__
-    | '_ \| | | | | \ \ /\ / / _` | __/ __| '_ \
-    | |_) | |_| | |  \ V  V / (_| | || (__| | | |
-    | .__/ \__,_|__\  \_/\_/ \__,_|\__\___|_|  \_\
-    | |
-    |_|
+             _ _                      _       _
+            | | |                    | |     | |
+ _ __  _   _| | |________      ____ _| |_ ___| |__
+| '_ \| | | | | |______\ \ /\ / / _` | __/ __| '_ \
+| |_) | |_| | | |       \ V  V / (_| | || (__| | | |
+| .__/ \__,_|_|_|        \_/\_/ \__,_|\__\___|_| |_|
+| |
+|_|
 ```
+
+# pull-watch -- ./do_something_when_your_git_repo_changes.sh
 
 A hobbyist-grade tool that watches a git repository for changes and runs a specified command when changes are detected.
 
