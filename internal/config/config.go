@@ -10,8 +10,10 @@ import (
 type Config struct {
 	PollInterval time.Duration
 	Command      []string
-	GitDir       string // Added to support different git directories
-	Verbose      bool   // Added for detailed logging
+	GitDir       string
+	Verbose      bool
+	GracefulStop bool
+	StopTimeout  time.Duration
 }
 
 func Parse() (*Config, error) {
@@ -20,6 +22,8 @@ func Parse() (*Config, error) {
 	flag.DurationVar(&cfg.PollInterval, "interval", 15*time.Second, "Poll interval (e.g. 15s, 1m)")
 	flag.StringVar(&cfg.GitDir, "git-dir", ".", "Git repository directory")
 	flag.BoolVar(&cfg.Verbose, "verbose", false, "Enable verbose logging")
+	flag.BoolVar(&cfg.GracefulStop, "graceful", false, "Try graceful stop before force kill")
+	flag.DurationVar(&cfg.StopTimeout, "stop-timeout", 5*time.Second, "Timeout for graceful stop before force kill")
 
 	// Custom usage message
 	flag.Usage = PrintUsage

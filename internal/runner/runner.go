@@ -12,29 +12,64 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/ship-digital/pull-watch/internal/config"
 	"github.com/ship-digital/pull-watch/internal/git"
 )
+
+var (
+	prefix     = color.New(color.FgCyan).Sprint("[pull-watch] ")
+	errorColor = color.New(color.FgRed).SprintFunc()
+	infoColor  = color.New(color.FgGreen).SprintFunc()
+)
+
+// Custom logger that adds our prefix
+type prefixLogger struct {
+	*log.Logger
+}
+
+func newLogger() *prefixLogger {
+	return &prefixLogger{
+		Logger: log.New(os.Stderr, prefix, log.LstdFlags),
+	}
+}
+
+func (l *prefixLogger) Error(format string, v ...interface{}) {
+	l.Printf(errorColor("ERROR: "+format), v...)
+}
+
+func (l *prefixLogger) Info(format string, v ...interface{}) {
+	l.Printf(infoColor(format), v...)
+}
 
 type ProcessManager struct {
 	mu       sync.Mutex
 	cmd      *exec.Cmd
 	doneChan chan struct{}
+	stopped  bool
+	logger   *prefixLogger
 }
 
 func (pm *ProcessManager) Start(cfg *config.Config) error {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
+	// Make sure any previous process is fully cleaned up
 	if pm.cmd != nil {
-		return fmt.Errorf("process already running")
+		if err := pm.forceStop(); err != nil && cfg.Verbose {
+			pm.logger.Error("Failed to clean up previous process: %v", err)
+		}
+		pm.cmd = nil
 	}
 
+	pm.stopped = false
 	pm.doneChan = make(chan struct{})
 	pm.cmd = exec.Command(cfg.Command[0], cfg.Command[1:]...)
 	pm.cmd.Stdout = os.Stdout
 	pm.cmd.Stderr = os.Stderr
 	pm.cmd.Stdin = os.Stdin
+
+	setProcessGroup(pm.cmd)
 
 	if err := pm.cmd.Start(); err != nil {
 		return fmt.Errorf("failed to start command: %w", err)
@@ -42,13 +77,16 @@ func (pm *ProcessManager) Start(cfg *config.Config) error {
 
 	go func() {
 		pm.cmd.Wait()
+		pm.mu.Lock()
 		close(pm.doneChan)
+		pm.cmd = nil
+		pm.mu.Unlock()
 	}()
 
 	return nil
 }
 
-func (pm *ProcessManager) Stop() error {
+func (pm *ProcessManager) Stop(cfg *config.Config) error {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
@@ -56,39 +94,49 @@ func (pm *ProcessManager) Stop() error {
 		return nil
 	}
 
-	// Try SIGTERM first
-	if err := pm.cmd.Process.Signal(syscall.SIGTERM); err != nil {
-		return pm.cmd.Process.Kill()
+	pm.stopped = true
+
+	if cfg.GracefulStop {
+		return pm.gracefulStop(cfg.StopTimeout)
+	}
+	return pm.forceStop()
+}
+
+func (pm *ProcessManager) gracefulStop(timeout time.Duration) error {
+	if err := terminateProcess(pm.cmd); err != nil {
+		return pm.forceStop()
 	}
 
-	// Wait for graceful shutdown with timeout
 	select {
 	case <-pm.doneChan:
-	case <-time.After(5 * time.Second):
-		return pm.cmd.Process.Kill()
+		return nil
+	case <-time.After(timeout):
+		return pm.forceStop()
 	}
+}
 
-	return nil
+func (pm *ProcessManager) forceStop() error {
+	return killProcess(pm.cmd)
 }
 
 func Watch(cfg *config.Config) error {
+	logger := newLogger()
 	repo := git.New(cfg.GitDir)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Get initial commit
 	lastCommit, err := repo.GetLatestCommit(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get initial commit: %w", err)
 	}
 
 	if cfg.Verbose {
-		log.Printf("Starting watch with %v interval\n", cfg.PollInterval)
-		log.Printf("Initial commit: %s\n", lastCommit)
-		log.Printf("Command: %s\n", strings.Join(cfg.Command, " "))
+		logger.Info("Starting watch with %v interval", cfg.PollInterval)
+		logger.Info("Initial commit: %s", lastCommit)
+		logger.Info("Command: %s", strings.Join(cfg.Command, " "))
 	}
 
-	pm := &ProcessManager{}
+	pm := &ProcessManager{logger: logger}
 	if err := pm.Start(cfg); err != nil {
 		return err
 	}
@@ -99,28 +147,33 @@ func Watch(cfg *config.Config) error {
 	ticker := time.NewTicker(cfg.PollInterval)
 	defer ticker.Stop()
 
+	var processExited bool
 	for {
 		select {
 		case <-ticker.C:
-			if err := checkAndUpdate(ctx, cfg, repo, &lastCommit, pm); err != nil && cfg.Verbose {
-				log.Printf("Error during update check: %v\n", err)
+			if err := checkAndUpdate(ctx, cfg, repo, &lastCommit, pm, processExited); err != nil && cfg.Verbose {
+				logger.Error("Error during update check: %v", err)
 			}
+			processExited = false
 
 		case <-pm.doneChan:
-			if err := pm.Start(cfg); err != nil && cfg.Verbose {
-				log.Printf("Error restarting command: %v\n", err)
+			if !processExited {
+				processExited = true
+				if cfg.Verbose {
+					logger.Info("Process exited, waiting for changes before restart")
+				}
 			}
 
 		case sig := <-sigChan:
 			if cfg.Verbose {
-				log.Printf("Received signal %v, shutting down...\n", sig)
+				logger.Info("Received signal %v, shutting down...", sig)
 			}
-			return pm.Stop()
+			return pm.Stop(cfg)
 		}
 	}
 }
 
-func checkAndUpdate(ctx context.Context, cfg *config.Config, repo *git.Repository, lastCommit *string, pm *ProcessManager) error {
+func checkAndUpdate(ctx context.Context, cfg *config.Config, repo *git.Repository, lastCommit *string, pm *ProcessManager, shouldStart bool) error {
 	pullOutput, err := repo.Pull(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to pull changes: %w", err)
@@ -131,19 +184,25 @@ func checkAndUpdate(ctx context.Context, cfg *config.Config, repo *git.Repositor
 		return fmt.Errorf("failed to get current commit: %w", err)
 	}
 
-	if currentCommit != *lastCommit {
+	hasChanges := currentCommit != *lastCommit
+
+	// Only restart if there are actual changes
+	if hasChanges {
 		if cfg.Verbose {
-			log.Printf("\nChanges detected!\n")
-			log.Printf("Previous commit: %s\n", *lastCommit)
-			log.Printf("New commit: %s\n", currentCommit)
-			log.Printf("Pull output: %s\n", pullOutput)
+			pm.logger.Info("\nChanges detected!")
+			pm.logger.Info("Previous commit: %s", *lastCommit)
+			pm.logger.Info("New commit: %s", currentCommit)
+			pm.logger.Info("Pull output: %s", pullOutput)
 		}
 
 		*lastCommit = currentCommit
 
-		if err := pm.Stop(); err != nil && cfg.Verbose {
-			log.Printf("Error stopping process: %v\n", err)
+		if err := pm.Stop(cfg); err != nil && cfg.Verbose {
+			pm.logger.Error("Error stopping process: %v", err)
 		}
+
+		// Add a small delay to ensure process cleanup
+		time.Sleep(100 * time.Millisecond)
 
 		if err := pm.Start(cfg); err != nil {
 			return fmt.Errorf("failed to restart command: %w", err)
