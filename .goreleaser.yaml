@@ -73,3 +73,23 @@ upx:
     # Only compress Linux and Windows builds
     goos: [linux, windows]
     goarch: [amd64, arm64]
+
+chocolateys:
+  - name: pull-watch
+    title: "Pull Watch"
+    authors: Ship Digital
+    project_url: "https://github.com/ship-digital/pull-watch"
+    license_url: "https://github.com/ship-digital/pull-watch/blob/main/LICENSE"
+    require_license_acceptance: false
+    project_source_url: "https://github.com/ship-digital/pull-watch"
+    docs_url: "https://github.com/ship-digital/pull-watch/blob/main/README.md"
+    bug_tracker_url: "https://github.com/ship-digital/pull-watch/issues"
+    tags: "git pull watch monitor automation"
+    summary: "A tool that watches a git repository for changes and runs a specified command"
+    description: |
+      Pull Watch is a tool that monitors git repositories for changes and
+      automatically executes specified commands when updates are detected.
+    release_notes: "https://github.com/ship-digital/pull-watch/releases/tag/v{{.Version}}"
+    api_key: '{{ .Env.CHOCOLATEY_API_KEY }}'
+    source_repo: "https://push.chocolatey.org/"
+    skip_publish: false
