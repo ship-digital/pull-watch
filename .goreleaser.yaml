@@ -64,6 +64,7 @@ brews:
     directory: Formula
     install: |
       bin.install "pull-watch"
+    icon: "https://raw.githubusercontent.com/ship-digital/pull-watch/main/assets/pull-watch-icon.svg"
 
 upx:
   - enabled: true
@@ -94,3 +95,4 @@ chocolateys:
     api_key: '{{ .Env.CHOCOLATEY_API_KEY }}'
     source_repo: "https://push.chocolatey.org/"
     skip_publish: false
+    icon_url: "https://raw.githubusercontent.com/ship-digital/pull-watch/main/assets/pull-watch-icon.png"
