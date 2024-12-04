@@ -96,3 +96,102 @@ chocolateys:
     source_repo: "https://push.chocolatey.org/"
     skip_publish: false
     icon_url: "https://raw.githubusercontent.com/ship-digital/pull-watch/main/assets/pull-watch-icon.png"
+
+winget:
+  - name: ShipDigital.PullWatch
+    publisher: Ship Digital
+    license: MIT
+    copyright: Copyright (c) 2024 Alessandro De Blasis - Ship Digital Ltd
+    short_description: A tool that watches a git repository for changes and runs a specified command
+    homepage: https://github.com/ship-digital/pull-watch
+    author: Alessandro De Blasis
+    tags:
+      - git
+      - pull
+      - watch
+      - monitor
+      - automation
+    release_notes: "https://github.com/ship-digital/pull-watch/releases/tag/v{{.Version}}"
+    repository_url: "https://github.com/ship-digital/pull-watch"
+    documentation_url: "https://github.com/ship-digital/pull-watch/blob/main/README.md"
+    publisher_url: "https://github.com/ship-digital"
+    publisher_support_url: "https://github.com/ship-digital/pull-watch/issues"
+    moniker: pull-watch
+    minimum_windows_version: "10.0.0.0"
+    locales:
+      - locale: de-DE
+        short_description: Ein Tool, das ein Git-Repository auf Änderungen überwacht und einen angegebenen Befehl ausführt
+        tags:
+          - git
+          - pull
+          - watch
+          - monitor
+          - automatisierung
+          - pullwatch
+          - pull-watch
+      - locale: es-ES
+        short_description: Una herramienta que monitorea un repositorio git para detectar cambios y ejecuta un comando especificado
+        tags:
+          - git
+          - pull
+          - watch
+          - monitor
+          - automatización
+          - pullwatch
+          - pull-watch
+      - locale: fr-FR
+        short_description: Un outil qui surveille un dépôt git pour les changements et exécute une commande spécifiée
+        tags:
+          - git
+          - pull
+          - watch
+          - monitor
+          - automatisation
+          - pullwatch
+          - pull-watch
+      - locale: it-IT
+        short_description: Uno strumento che monitora un repository git per le modifiche ed esegue un comando specificato
+        tags:
+          - git
+          - pull
+          - watch
+          - monitor
+          - automazione
+          - pullwatch
+          - pull-watch
+      - locale: pt-BR
+        short_description: Uma ferramenta que monitora um repositório git para alterações e executa um comando especificado
+        tags:
+          - git
+          - pull
+          - watch
+          - monitor
+          - automação
+          - pullwatch
+          - pull-watch
+      - locale: pt-PT
+        short_description: Uma ferramenta que monitoriza um repositório git para alterações e executa um comando especificado
+        tags:
+          - git
+          - pull
+          - watch
+          - monitor
+          - automatização
+          - pullwatch
+          - pull-watch
+      - locale: zh-CN
+        short_description: 一个监视 git 仓库变更并执行指定命令的工具
+        tags:
+          - git
+          - pull
+          - watch
+          - monitor
+          - 自动化
+          - pullwatch
+          - pull-watch
+    commands:
+      - pull-watch
+    nested_installer_type: portable
+    nested_installer_files:
+      - relative_file_path: pull-watch.exe
+    portable_command_alias: pull-watch
