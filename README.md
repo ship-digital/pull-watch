@@ -32,8 +32,23 @@ Never miss a change again - pull-watch sits patiently by your repository, waitin
 
 Quick and easy - just like ordering pizza!
 
+### Go Install
+
 ```bash
 go install github.com/ship-digital/pull-watch@latest
+```
+
+### Homebrew
+
+```bash
+brew tap ship-digital/tap
+brew install pull-watch
+```
+
+### Chocolatey (Windows)
+
+```powershell
+choco install pull-watch
 ```
 
 ## 🎮 Usage
