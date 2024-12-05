@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -26,19 +27,44 @@ type MainCommand struct {
 }
 
 func (c *MainCommand) Run(args []string) int {
+	if len(args) == 0 {
+		c.ui.Error("Error: no arguments provided")
+		c.ui.Output(c.Help())
+		return 1
+	}
+
+	// Find the index of "--" separator
+	cmdIndex := -1
+	for i, arg := range args {
+		if arg == "--" {
+			cmdIndex = i
+			break
+		}
+	}
+
+	if cmdIndex == -1 {
+		c.ui.Error("Error: command separator '--' not found")
+		c.ui.Output(c.Help())
+		return 1
+	}
+
+	// Parse flags first
 	flags := flag.NewFlagSet("pull-watch", flag.ContinueOnError)
+	flags.SetOutput(io.Discard) // Suppress flag errors
 	flags.DurationVar(&c.pollInterval, "interval", 15*time.Second, "Poll interval (e.g. 15s, 1m)")
 	flags.StringVar(&c.gitDir, "git-dir", ".", "Git repository directory")
 	flags.BoolVar(&c.verbose, "verbose", false, "Enable verbose logging")
 	flags.BoolVar(&c.graceful, "graceful", false, "Try graceful stop before force kill")
 	flags.DurationVar(&c.stopTimeout, "stop-timeout", 5*time.Second, "Timeout for graceful stop before force kill")
 
-	if err := flags.Parse(args); err != nil {
+	// Parse only the flags before "--"
+	if err := flags.Parse(args[:cmdIndex]); err != nil {
 		return 1
 	}
 
-	args = flags.Args()
-	if len(args) == 0 {
+	// Get command and its args after "--"
+	cmdArgs := args[cmdIndex+1:]
+	if len(cmdArgs) == 0 {
 		c.ui.Error("Error: no command provided")
 		c.ui.Output(c.Help())
 		return 1
@@ -46,7 +72,7 @@ func (c *MainCommand) Run(args []string) int {
 
 	cfg := &config.Config{
 		PollInterval: c.pollInterval,
-		Command:      args,
+		Command:      cmdArgs,
 		GitDir:       c.gitDir,
 		Verbose:      c.verbose,
 		GracefulStop: c.graceful,
@@ -111,25 +137,19 @@ func main() {
 		ErrorWriter: os.Stderr,
 	}
 
-	c := cli.NewCLI("pull-watch", version)
-	c.Args = os.Args[1:]
-	c.Commands = map[string]cli.CommandFactory{
-		"": func() (cli.Command, error) {
-			return &MainCommand{ui: ui}, nil
-		},
-		"version": func() (cli.Command, error) {
-			return &VersionCommand{
-				Version: version,
-				ui:      ui,
-			}, nil
-		},
+	// Create the command directly
+	cmd := &MainCommand{ui: ui}
+
+	// If first argument is "version", handle it specially
+	if len(os.Args) > 1 && os.Args[1] == "version" {
+		versionCmd := &VersionCommand{
+			Version: version,
+			ui:      ui,
+		}
+		os.Exit(versionCmd.Run(nil))
 	}
 
-	exitStatus, err := c.Run()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
-
+	// Pass all arguments to the main command
+	exitStatus := cmd.Run(os.Args[1:])
 	os.Exit(exitStatus)
 }
