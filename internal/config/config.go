@@ -38,10 +38,17 @@ func Parse() (*Config, error) {
 	return cfg, nil
 }
 
-func PrintUsage() {
-	fmt.Fprintf(os.Stderr, `Usage: pull-watch [options] -- <command>
+func GetUsageString() string {
+	return `Usage: pull-watch [options] -- <command>
 
 Options:
-`)
-	flag.PrintDefaults()
+  -interval duration     Poll interval (e.g. 15s, 1m) (default 15s)
+  -git-dir string       Git repository directory (default ".")
+  -verbose              Enable verbose logging
+  -graceful             Try graceful stop before force kill
+  -stop-timeout duration Timeout for graceful stop before force kill (default 5s)`
+}
+
+func PrintUsage() {
+	fmt.Fprintln(os.Stderr, GetUsageString())
 }
