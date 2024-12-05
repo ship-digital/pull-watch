@@ -210,11 +210,6 @@ func Watch(cfg *config.Config) error {
 }
 
 func checkAndUpdate(ctx context.Context, cfg *config.Config, repo *git.Repository, lastCommit *string, pm *ProcessManager, shouldStart bool) error {
-	// Fetch latest without merging
-	if err := repo.Fetch(ctx); err != nil {
-		return fmt.Errorf("failed to fetch changes: %w", err)
-	}
-
 	// Get local and remote hashes
 	localHash, err := repo.GetLatestCommit(ctx)
 	if err != nil {
