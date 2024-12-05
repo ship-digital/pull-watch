@@ -58,6 +58,7 @@ func (r *Repository) Pull(ctx context.Context) (string, error) {
 }
 
 func (r *Repository) GetRemoteCommit(ctx context.Context) (string, error) {
+	// Get upstream branch (e.g. "origin/main")
 	remoteBranch, err := r.execGitCmd(ctx, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
 	if err != nil {
 		if strings.Contains(err.Error(), "no upstream") {
@@ -66,18 +67,33 @@ func (r *Repository) GetRemoteCommit(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("failed to get tracking branch: %w", err)
 	}
 
-	parts := strings.SplitN(remoteBranch, "/", 2)
+	// Split into remote and branch (e.g. ["origin", "main"])
+	parts := strings.SplitN(strings.TrimSpace(remoteBranch), "/", 2)
 	if len(parts) != 2 {
 		return "", fmt.Errorf("invalid tracking branch format: %s", remoteBranch)
 	}
 	remote := parts[0]
+	branch := parts[1]
 
-	output, err := r.execGitCmd(ctx, "ls-remote", remote, "HEAD")
+	// Try specific branch first
+	output, err := r.execGitCmd(ctx, "ls-remote", remote, fmt.Sprintf("refs/heads/%s", branch))
 	if err != nil {
 		return "", err
 	}
-	hash := strings.Split(output, "\t")[0]
-	return hash, nil
+
+	// If no output, try HEAD as fallback (for default branches)
+	if strings.TrimSpace(output) == "" {
+		output, err = r.execGitCmd(ctx, "ls-remote", remote, "HEAD")
+		if err != nil {
+			return "", err
+		}
+	}
+
+	parts = strings.Split(strings.TrimSpace(output), "\t")
+	if len(parts) == 0 {
+		return "", fmt.Errorf("unexpected ls-remote output format")
+	}
+	return parts[0], nil
 }
 
 // GetCurrentBranch returns the name of the current branch

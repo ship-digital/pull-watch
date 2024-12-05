@@ -10,13 +10,15 @@ import (
 
 	"github.com/hashicorp/cli"
 	"github.com/ship-digital/pull-watch/internal/config"
+	"github.com/ship-digital/pull-watch/internal/logger"
 	"github.com/ship-digital/pull-watch/internal/runner"
 )
 
 var version = "dev"
 
 type MainCommand struct {
-	ui cli.Ui
+	ui  cli.Ui
+	log *logger.Logger
 
 	// Flag values
 	pollInterval time.Duration
@@ -70,6 +72,8 @@ func (c *MainCommand) Run(args []string) int {
 		return 1
 	}
 
+	c.log = logger.New()
+
 	cfg := &config.Config{
 		PollInterval: c.pollInterval,
 		Command:      cmdArgs,
@@ -77,6 +81,7 @@ func (c *MainCommand) Run(args []string) int {
 		Verbose:      c.verbose,
 		GracefulStop: c.graceful,
 		StopTimeout:  c.stopTimeout,
+		Logger:       c.log,
 	}
 
 	if err := runner.Watch(cfg); err != nil {
