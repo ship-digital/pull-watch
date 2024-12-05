@@ -74,7 +74,7 @@ func TestGetLatestCommit(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockExecutor := &MockExecutor{Responses: tt.mockResp}
-			repo := NewWithExecutor("/fake/dir", mockExecutor)
+			repo := New(&config.Config{GitDir: "/fake/dir"}, WithExecutor(mockExecutor))
 			got, err := repo.GetLatestCommit(context.Background())
 
 			if (err != nil) != tt.wantErr {
@@ -295,7 +295,7 @@ func TestGetRemoteCommit(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockExecutor := &MockExecutor{Responses: tt.mockResp}
-			repo := NewWithExecutor("/fake/dir", mockExecutor)
+			repo := New(&config.Config{GitDir: "/fake/dir"}, WithExecutor(mockExecutor))
 			got, err := repo.GetRemoteCommit(context.Background())
 
 			if (err != nil) != tt.wantErr {
@@ -414,7 +414,7 @@ func TestPull(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockExecutor := &MockExecutor{Responses: tt.mockResp}
-			repo := NewWithExecutor("/fake/dir", mockExecutor)
+			repo := New(&config.Config{GitDir: "/fake/dir"}, WithExecutor(mockExecutor))
 			got, err := repo.Pull(context.Background())
 
 			if (err != nil) != tt.wantErr {

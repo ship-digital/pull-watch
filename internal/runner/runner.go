@@ -107,8 +107,105 @@ func (pm *ProcessManager) forceStop() error {
 	return killProcess(pm.cmd)
 }
 
-func Watch(cfg *config.Config) error {
-	repo := git.New(cfg.GitDir, cfg)
+// handleCommitComparison handles the commit comparison and decides whether to pull changes
+func (pm *ProcessManager) handleCommitComparison(ctx context.Context, cfg *config.Config, repo git.Repository, localCommit, remoteCommit string) (git.CommitComparisonResult, error) {
+	// Log commits if verbose
+	if cfg.Verbose {
+		pm.logger.MultiColor(
+			logger.InfoSegment("Local commit: "),
+			logger.HighlightSegment(localCommit),
+		)
+		pm.logger.MultiColor(
+			logger.InfoSegment("Remote commit: "),
+			logger.HighlightSegment(remoteCommit),
+		)
+	}
+
+	// Compare commits
+	comparison, err := repo.CompareCommits(ctx, localCommit, remoteCommit)
+	if err != nil {
+		return git.UnknownCommitComparisonResult, fmt.Errorf("failed to compare commits: %w", err)
+	}
+
+	// Handle different comparison results
+	switch comparison {
+	case git.AIsAncestorOfB:
+		if cfg.Verbose {
+			pm.logger.MultiColor(
+				logger.InfoSegment("Local commit is "),
+				logger.HighlightSegment("behind"),
+				logger.InfoSegment(" remote commit, "),
+				logger.HighlightSegment("pulling changes..."),
+			)
+		}
+		if _, err := repo.Pull(ctx); err != nil {
+			return git.UnknownCommitComparisonResult, fmt.Errorf("failed to pull changes: %w", err)
+		}
+		return git.AIsAncestorOfB, nil
+
+	case git.BIsAncestorOfA:
+		if cfg.Verbose {
+			pm.logger.MultiColor(
+				logger.InfoSegment("Local commit is "),
+				logger.HighlightSegment("ahead"),
+				logger.InfoSegment(" of remote commit, "),
+				logger.HighlightSegment("not pulling."),
+			)
+		}
+		return git.BIsAncestorOfA, nil
+
+	case git.CommitsDiverged:
+		if cfg.Verbose {
+			pm.logger.MultiColor(
+				logger.InfoSegment("Local commit and remote commit "),
+				logger.HighlightSegment("have diverged"),
+				logger.InfoSegment(": "),
+				logger.HighlightSegment("not pulling."),
+			)
+		}
+		return git.CommitsDiverged, nil
+
+	case git.CommitsEqual:
+		if cfg.Verbose {
+			pm.logger.MultiColor(
+				logger.InfoSegment("Local commit and remote commit "),
+				logger.HighlightSegment("are the same"),
+				logger.InfoSegment(": "),
+				logger.HighlightSegment("not pulling."),
+			)
+		}
+		return git.CommitsEqual, nil
+
+	default:
+		return git.UnknownCommitComparisonResult, fmt.Errorf("unknown commit comparison result: %v", comparison)
+	}
+}
+
+// WatchOption configures the Watch function
+type WatchOption func(*watchOptions)
+
+type watchOptions struct {
+	repository git.Repository
+}
+
+// WithRepository sets a custom repository implementation
+func WithRepository(repo git.Repository) WatchOption {
+	return func(opts *watchOptions) {
+		opts.repository = repo
+	}
+}
+
+func Watch(cfg *config.Config, opts ...WatchOption) error {
+	options := &watchOptions{}
+	for _, opt := range opts {
+		opt(options)
+	}
+
+	repo := options.repository
+	if repo == nil {
+		repo = git.New(cfg)
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -141,16 +238,33 @@ func Watch(cfg *config.Config) error {
 		)
 	}
 
-	if lastLocalCommit != lastRemoteCommit {
-		cfg.Logger.Info("Pulling changes...")
-		if _, err := repo.Pull(ctx); err != nil {
-			return fmt.Errorf("failed to pull initial changes: %w", err)
+	pm := NewProcessManager(cfg)
+
+	comparison, err := pm.handleCommitComparison(ctx, cfg, repo, lastLocalCommit, lastRemoteCommit)
+	if err != nil {
+		return err
+	}
+
+	shouldStart := cfg.RunOnStart || comparison == git.AIsAncestorOfB
+
+	if cfg.Verbose {
+		if shouldStart && cfg.RunOnStart {
+			cfg.Logger.MultiColor(
+				logger.HighlightSegment("Starting"),
+				logger.InfoSegment(" command on startup"),
+			)
+		} else if !shouldStart {
+			cfg.Logger.MultiColor(
+				logger.HighlightSegment("Not starting"),
+				logger.InfoSegment(" command on startup (use -run-on-start to override)"),
+			)
 		}
 	}
 
-	pm := NewProcessManager(cfg)
-	if err := pm.Start(cfg); err != nil {
-		return err
+	if shouldStart {
+		if err := pm.Start(cfg); err != nil {
+			return err
+		}
 	}
 
 	sigChan := make(chan os.Signal, 1)
@@ -223,8 +337,7 @@ func Watch(cfg *config.Config) error {
 	}
 }
 
-func checkAndUpdate(ctx context.Context, cfg *config.Config, repo *git.Repository, lastCommit *string, pm *ProcessManager, shouldStart bool) error {
-	// Get local and remote hashes
+func checkAndUpdate(ctx context.Context, cfg *config.Config, repo git.Repository, lastCommit *string, pm *ProcessManager, shouldStart bool) error {
 	localHash, err := repo.GetLatestCommit(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get local commit: %w", err)
@@ -235,30 +348,18 @@ func checkAndUpdate(ctx context.Context, cfg *config.Config, repo *git.Repositor
 		return fmt.Errorf("failed to get remote commit: %w", err)
 	}
 
-	// Only pull and restart if remote hash differs
-	if remoteHash != localHash {
+	comparison, err := pm.handleCommitComparison(ctx, cfg, repo, localHash, remoteHash)
+	if err != nil {
+		return err
+	}
+
+	if comparison == git.AIsAncestorOfB {
 		if cfg.Verbose {
 			pm.logger.Info("\nChanges detected!")
-			pm.logger.MultiColor(
-				logger.InfoSegment("Local commit: "),
-				logger.HighlightSegment(localHash),
-			)
-			pm.logger.MultiColor(
-				logger.InfoSegment("Remote commit: "),
-				logger.HighlightSegment(remoteHash),
-			)
 		}
 
-		pullOutput, err := repo.Pull(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to pull changes: %w", err)
-		}
-
-		if cfg.Verbose {
-			pm.logger.MultiColor(
-				logger.InfoSegment("Pull output: "),
-				logger.HighlightSegment(pullOutput),
-			)
+		if _, err := pm.handleCommitComparison(ctx, cfg, repo, localHash, remoteHash); err != nil {
+			return err
 		}
 
 		*lastCommit = remoteHash
