@@ -49,10 +49,21 @@ func (r *Repository) Pull(ctx context.Context) (string, error) {
 }
 
 func (r *Repository) GetRemoteCommit(ctx context.Context) (string, error) {
-	cmd := exec.CommandContext(ctx, "git", "-C", r.dir, "rev-parse", "@{u}")
-	output, err := cmd.Output()
+	remoteBranch, err := r.execGitCmd(ctx, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
+	if err != nil {
+		return "", fmt.Errorf("failed to get tracking branch: %w", err)
+	}
+
+	parts := strings.SplitN(remoteBranch, "/", 2)
+	if len(parts) != 2 {
+		return "", fmt.Errorf("invalid tracking branch format: %s", remoteBranch)
+	}
+	remote := parts[0]
+
+	output, err := r.execGitCmd(ctx, "ls-remote", remote, "HEAD")
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimSpace(string(output)), nil
+	hash := strings.Split(output, "\t")[0]
+	return hash, nil
 }
