@@ -106,11 +106,11 @@ func (pm *ProcessManager) forceStop() error {
 
 func Watch(cfg *config.Config) error {
 	log := logger.New()
-	repo := git.New(cfg.GitDir)
+	repo := git.New(cfg.GitDir, cfg)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	lastLocalCommit, err := repo.GetLatestLocalCommit(ctx)
+	lastLocalCommit, err := repo.GetLatestCommit(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get initial commit: %w", err)
 	}
@@ -201,7 +201,7 @@ func Watch(cfg *config.Config) error {
 
 func checkAndUpdate(ctx context.Context, cfg *config.Config, repo *git.Repository, lastCommit *string, pm *ProcessManager, shouldStart bool) error {
 	// Get local and remote hashes
-	localHash, err := repo.GetLatestLocalCommit(ctx)
+	localHash, err := repo.GetLatestCommit(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get local commit: %w", err)
 	}
