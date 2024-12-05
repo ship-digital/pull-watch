@@ -35,7 +35,7 @@ func (r *Repository) execGitCmd(ctx context.Context, args ...string) (string, er
 	return strings.TrimSpace(stdout.String()), nil
 }
 
-func (r *Repository) GetLatestCommit(ctx context.Context) (string, error) {
+func (r *Repository) GetLatestLocalCommit(ctx context.Context) (string, error) {
 	return r.execGitCmd(ctx, "rev-parse", "HEAD")
 }
 

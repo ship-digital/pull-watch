@@ -3,7 +3,6 @@ package runner
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -12,44 +11,22 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/fatih/color"
 	"github.com/ship-digital/pull-watch/internal/config"
 	"github.com/ship-digital/pull-watch/internal/git"
+	"github.com/ship-digital/pull-watch/internal/logger"
 )
 
 var (
-	prefix         = color.New(color.FgCyan).Sprint("[pull-watch] ")
-	errorColor     = color.New(color.FgRed).SprintFunc()
-	infoColor      = color.New(color.FgGreen).SprintFunc()
 	initialBackoff = 5 * time.Second
 	maxBackoff     = 5 * time.Minute
 )
-
-// Custom logger that adds our prefix
-type prefixLogger struct {
-	*log.Logger
-}
-
-func newLogger() *prefixLogger {
-	return &prefixLogger{
-		Logger: log.New(os.Stderr, prefix, log.LstdFlags),
-	}
-}
-
-func (l *prefixLogger) Error(format string, v ...interface{}) {
-	l.Printf(errorColor("ERROR: "+format), v...)
-}
-
-func (l *prefixLogger) Info(format string, v ...interface{}) {
-	l.Printf(infoColor(format), v...)
-}
 
 type ProcessManager struct {
 	mu          sync.Mutex
 	cmd         *exec.Cmd
 	doneChan    chan struct{}
 	stopped     bool
-	logger      *prefixLogger
+	logger      *logger.Logger
 	lastLogTime time.Time
 	backoff     time.Duration
 }
@@ -128,23 +105,36 @@ func (pm *ProcessManager) forceStop() error {
 }
 
 func Watch(cfg *config.Config) error {
-	logger := newLogger()
+	log := logger.New()
 	repo := git.New(cfg.GitDir)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	lastCommit, err := repo.GetLatestCommit(ctx)
+	lastLocalCommit, err := repo.GetLatestLocalCommit(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get initial commit: %w", err)
 	}
 
-	if cfg.Verbose {
-		logger.Info("Starting watch with %v interval", cfg.PollInterval)
-		logger.Info("Initial commit: %s", lastCommit)
-		logger.Info("Command: %s", strings.Join(cfg.Command, " "))
+	lastRemoteCommit, err := repo.GetRemoteCommit(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get initial remote commit: %w", err)
 	}
 
-	pm := &ProcessManager{logger: logger}
+	if cfg.Verbose {
+		log.Info("Starting watch with %v interval", cfg.PollInterval)
+		log.Info("Local commit: %s", lastLocalCommit)
+		log.Info("Remote commit: %s", lastRemoteCommit)
+		log.Info("Command: %s", strings.Join(cfg.Command, " "))
+	}
+
+	if lastLocalCommit != lastRemoteCommit {
+		log.Info("Pulling changes...")
+		if _, err := repo.Pull(ctx); err != nil {
+			return fmt.Errorf("failed to pull initial changes: %w", err)
+		}
+	}
+
+	pm := &ProcessManager{logger: log}
 	if err := pm.Start(cfg); err != nil {
 		return err
 	}
@@ -159,8 +149,8 @@ func Watch(cfg *config.Config) error {
 	for {
 		select {
 		case <-ticker.C:
-			if err := checkAndUpdate(ctx, cfg, repo, &lastCommit, pm, processExited); err != nil && cfg.Verbose {
-				logger.Error("Error during update check: %v", err)
+			if err := checkAndUpdate(ctx, cfg, repo, &lastLocalCommit, pm, processExited); err != nil && cfg.Verbose {
+				log.Error("Error during update check: %v", err)
 			}
 			processExited = false
 
@@ -177,7 +167,7 @@ func Watch(cfg *config.Config) error {
 				// Log only if enough time has passed
 				if now.Sub(pm.lastLogTime) >= pm.backoff {
 					if cfg.Verbose {
-						logger.Info("Process exited, waiting for changes before restart")
+						log.Info("Process exited, waiting for changes before restart")
 					}
 					pm.lastLogTime = now
 					// Increase backoff for next time (cap at maxBackoff)
@@ -190,11 +180,11 @@ func Watch(cfg *config.Config) error {
 
 		case sig := <-sigChan:
 			if cfg.Verbose {
-				logger.Info("Received signal %v, shutting down...", sig)
+				log.Info("Received signal %v, shutting down...", sig)
 			}
 			// Stop the process and wait for it to finish before exiting
 			if err := pm.Stop(cfg); err != nil {
-				logger.Error("Error stopping process: %v", err)
+				log.Error("Error stopping process: %v", err)
 				return err
 			}
 			// Wait for process to fully terminate
@@ -216,7 +206,7 @@ func checkAndUpdate(ctx context.Context, cfg *config.Config, repo *git.Repositor
 	}
 
 	// Get local and remote hashes
-	localHash, err := repo.GetLatestCommit(ctx)
+	localHash, err := repo.GetLatestLocalCommit(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get local commit: %w", err)
 	}
