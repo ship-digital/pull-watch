@@ -140,6 +140,34 @@ func TestGetRemoteCommit(t *testing.T) {
 			want:    "",
 			wantErr: true,
 		},
+		{
+			name: "origin remote doesn't exist",
+			mockResp: map[string]struct {
+				Output string
+				Error  error
+			}{
+				"git remote get-url origin": {
+					Output: "",
+					Error:  fmt.Errorf("fatal: 'origin' does not appear to be a git repository"),
+				},
+			},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name: "no remotes configured",
+			mockResp: map[string]struct {
+				Output string
+				Error  error
+			}{
+				"git remote -v": {
+					Output: "",
+					Error:  nil,
+				},
+			},
+			want:    "",
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -220,6 +248,34 @@ func TestPull(t *testing.T) {
 				"git pull": {
 					Output: "",
 					Error:  fmt.Errorf("fatal: unable to access: Could not resolve host"),
+				},
+			},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name: "origin remote doesn't exist during pull",
+			mockResp: map[string]struct {
+				Output string
+				Error  error
+			}{
+				"git pull": {
+					Output: "",
+					Error:  fmt.Errorf("fatal: 'origin' does not appear to be a git repository"),
+				},
+			},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name: "no remotes configured during pull",
+			mockResp: map[string]struct {
+				Output string
+				Error  error
+			}{
+				"git pull": {
+					Output: "",
+					Error:  fmt.Errorf("fatal: No remote repository specified."),
 				},
 			},
 			want:    "",
