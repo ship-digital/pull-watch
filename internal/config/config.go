@@ -2,6 +2,8 @@ package config
 
 import (
 	"time"
+
+	"github.com/ship-digital/pull-watch/internal/logger"
 )
 
 type Config struct {
@@ -11,6 +13,7 @@ type Config struct {
 	Verbose      bool
 	GracefulStop bool
 	StopTimeout  time.Duration
+	Logger       *logger.Logger
 }
 
 func GetUsageString() string {

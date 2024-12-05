@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ship-digital/pull-watch/internal/config"
 	"github.com/ship-digital/pull-watch/internal/errz"
-	"github.com/your-project/config"
 )
 
 // MockExecutor implements CommandExecutor for testing
@@ -100,13 +100,35 @@ func TestGetRemoteCommit(t *testing.T) {
 		errType error
 	}{
 		{
-			name: "successful remote commit lookup",
+			name: "successful remote commit lookup - specific branch",
+			mockResp: map[string]struct {
+				Output string
+				Error  error
+			}{
+				"git rev-parse --abbrev-ref --symbolic-full-name @{u}": {
+					Output: "origin/feature\n",
+					Error:  nil,
+				},
+				"git ls-remote origin refs/heads/feature": {
+					Output: "abcdef0123456789\trefs/heads/feature\n",
+					Error:  nil,
+				},
+			},
+			want:    "abcdef0123456789",
+			wantErr: false,
+		},
+		{
+			name: "successful remote commit lookup - default branch",
 			mockResp: map[string]struct {
 				Output string
 				Error  error
 			}{
 				"git rev-parse --abbrev-ref --symbolic-full-name @{u}": {
 					Output: "origin/main\n",
+					Error:  nil,
+				},
+				"git ls-remote origin refs/heads/main": {
+					Output: "", // No output for specific branch
 					Error:  nil,
 				},
 				"git ls-remote origin HEAD": {
@@ -141,7 +163,7 @@ func TestGetRemoteCommit(t *testing.T) {
 					Output: "origin/main\n",
 					Error:  nil,
 				},
-				"git ls-remote origin HEAD": {
+				"git ls-remote origin refs/heads/main": {
 					Output: "",
 					Error:  fmt.Errorf("fatal: unable to access 'https://github.com/user/repo.git/': Failed to connect"),
 				},
@@ -191,6 +213,82 @@ func TestGetRemoteCommit(t *testing.T) {
 			want:    "",
 			wantErr: true,
 			errType: errz.ErrNoUpstreamBranch,
+		},
+		{
+			name: "remote with special characters",
+			mockResp: map[string]struct {
+				Output string
+				Error  error
+			}{
+				"git rev-parse --abbrev-ref --symbolic-full-name @{u}": {
+					Output: "upstream.gitlab/feature\n",
+					Error:  nil,
+				},
+				"git ls-remote upstream.gitlab refs/heads/feature": {
+					Output: "abcdef0123456789\trefs/heads/feature\n",
+					Error:  nil,
+				},
+			},
+			want:    "abcdef0123456789",
+			wantErr: false,
+		},
+		{
+			name: "branch with special characters",
+			mockResp: map[string]struct {
+				Output string
+				Error  error
+			}{
+				"git rev-parse --abbrev-ref --symbolic-full-name @{u}": {
+					Output: "origin/feature/with/slashes-and.dots\n",
+					Error:  nil,
+				},
+				"git ls-remote origin refs/heads/feature/with/slashes-and.dots": {
+					Output: "abcdef0123456789\trefs/heads/feature/with/slashes-and.dots\n",
+					Error:  nil,
+				},
+			},
+			want:    "abcdef0123456789",
+			wantErr: false,
+		},
+		{
+			name: "unicode branch name",
+			mockResp: map[string]struct {
+				Output string
+				Error  error
+			}{
+				"git rev-parse --abbrev-ref --symbolic-full-name @{u}": {
+					Output: "origin/feature/🚀-emoji\n",
+					Error:  nil,
+				},
+				"git ls-remote origin refs/heads/feature/🚀-emoji": {
+					Output: "abcdef0123456789\trefs/heads/feature/🚀-emoji\n",
+					Error:  nil,
+				},
+			},
+			want:    "abcdef0123456789",
+			wantErr: false,
+		},
+		{
+			name: "multiple remotes with same branch",
+			mockResp: map[string]struct {
+				Output string
+				Error  error
+			}{
+				"git rev-parse --abbrev-ref --symbolic-full-name @{u}": {
+					Output: "upstream/main\n",
+					Error:  nil,
+				},
+				"git ls-remote upstream refs/heads/main": {
+					Output: "", // No output for specific branch
+					Error:  nil,
+				},
+				"git ls-remote upstream HEAD": {
+					Output: "abcdef0123456789\tHEAD\n",
+					Error:  nil,
+				},
+			},
+			want:    "abcdef0123456789",
+			wantErr: false,
 		},
 	}
 

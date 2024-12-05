@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/ship-digital/pull-watch/internal/config"
+	"github.com/ship-digital/pull-watch/internal/logger"
 )
 
 // CommandExecutor defines an interface for executing commands
@@ -30,7 +31,10 @@ func (e *DefaultExecutor) ExecuteCommand(ctx context.Context, name string, args 
 	cmd.Dir = e.cfg.GitDir
 
 	if e.cfg.Verbose {
-		fmt.Printf("Executing command: %s %s\n", name, strings.Join(args, " "))
+		e.cfg.Logger.MultiColor(
+			logger.InfoSegment("Executing command: "),
+			logger.HighlightSegment(fmt.Sprintf("%s %s", name, strings.Join(args, " "))),
+		)
 	}
 
 	var stdout, stderr bytes.Buffer
