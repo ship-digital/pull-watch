@@ -49,10 +49,8 @@ func (r *Repository) Pull(ctx context.Context) (string, error) {
 }
 
 func (r *Repository) GetRemoteCommit(ctx context.Context) (string, error) {
-	cmd := exec.CommandContext(ctx, "git", "-C", r.dir, "rev-parse", "@{u}")
-	output, err := cmd.Output()
-	if err != nil {
+	if err := r.Fetch(ctx); err != nil {
 		return "", err
 	}
-	return strings.TrimSpace(string(output)), nil
+	return r.execGitCmd(ctx, "rev-parse", "@{u}")
 }
