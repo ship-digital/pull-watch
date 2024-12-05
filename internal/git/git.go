@@ -6,18 +6,22 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ship-digital/pull-watch/internal/config"
+	"github.com/ship-digital/pull-watch/internal/errz"
 	"github.com/ship-digital/pull-watch/internal/executor"
 )
 
 type Repository struct {
 	dir      string
+	cfg      *config.Config
 	executor executor.CommandExecutor
 }
 
-func New(dir string) *Repository {
+func New(dir string, cfg *config.Config) *Repository {
 	return &Repository{
 		dir:      dir,
-		executor: &executor.DefaultExecutor{Dir: dir},
+		cfg:      cfg,
+		executor: executor.New(cfg),
 	}
 }
 
@@ -56,6 +60,9 @@ func (r *Repository) Pull(ctx context.Context) (string, error) {
 func (r *Repository) GetRemoteCommit(ctx context.Context) (string, error) {
 	remoteBranch, err := r.execGitCmd(ctx, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
 	if err != nil {
+		if strings.Contains(err.Error(), "no upstream") {
+			return "", errz.ErrNoUpstreamBranch
+		}
 		return "", fmt.Errorf("failed to get tracking branch: %w", err)
 	}
 

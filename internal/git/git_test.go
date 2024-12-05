@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/ship-digital/pull-watch/internal/errz"
+	"github.com/your-project/config"
 )
 
 // MockExecutor implements CommandExecutor for testing
@@ -13,6 +16,11 @@ type MockExecutor struct {
 		Output string
 		Error  error
 	}
+	Config *config.Config
+}
+
+func (m *MockExecutor) GetConfig() *config.Config {
+	return m.Config
 }
 
 func (m *MockExecutor) ExecuteCommand(ctx context.Context, name string, args ...string) (string, error) {
@@ -89,6 +97,7 @@ func TestGetRemoteCommit(t *testing.T) {
 		}
 		want    string
 		wantErr bool
+		errType error
 	}{
 		{
 			name: "successful remote commit lookup",
@@ -168,6 +177,21 @@ func TestGetRemoteCommit(t *testing.T) {
 			want:    "",
 			wantErr: true,
 		},
+		{
+			name: "no upstream branch configured",
+			mockResp: map[string]struct {
+				Output string
+				Error  error
+			}{
+				"git rev-parse --abbrev-ref --symbolic-full-name @{u}": {
+					Output: "",
+					Error:  fmt.Errorf("fatal: no upstream configured for branch 'ls-remote'\nexit status 128"),
+				},
+			},
+			want:    "",
+			wantErr: true,
+			errType: errz.ErrNoUpstreamBranch,
+		},
 	}
 
 	for _, tt := range tests {
@@ -180,6 +204,12 @@ func TestGetRemoteCommit(t *testing.T) {
 				t.Errorf("GetRemoteCommit() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
+			if tt.errType != nil && err != tt.errType {
+				t.Errorf("GetRemoteCommit() error = %v, want error type %v", err, tt.errType)
+				return
+			}
+
 			if got != tt.want {
 				t.Errorf("GetRemoteCommit() = %v, want %v", got, tt.want)
 			}

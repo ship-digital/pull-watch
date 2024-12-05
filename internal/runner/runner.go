@@ -129,7 +129,7 @@ func (pm *ProcessManager) forceStop() error {
 
 func Watch(cfg *config.Config) error {
 	logger := newLogger()
-	repo := git.New(cfg.GitDir)
+	repo := git.New(cfg.GitDir, cfg)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
