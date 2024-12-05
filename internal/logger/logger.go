@@ -12,7 +12,7 @@ var (
 	prefix         = color.New(color.FgCyan).Sprint("[pull-watch] ")
 	errorColor     = color.New(color.FgRed).SprintFunc()
 	infoColor      = color.New(color.FgGreen).SprintFunc()
-	highlightColor = color.New(color.FgYellow).Add(color.Bold).SprintFunc()
+	highlightColor = color.New(color.FgHiYellow).Add(color.Bold).SprintFunc()
 )
 
 // Logger wraps the standard logger with custom formatting
@@ -20,11 +20,25 @@ type Logger struct {
 	*log.Logger
 }
 
-// New creates a new Logger instance
-func New() *Logger {
-	return &Logger{
-		Logger: log.New(os.Stderr, prefix, log.LstdFlags),
+// Option is a functional option for configuring the logger
+type Option func(*Logger)
+
+// WithTimestamp enables timestamps in log output
+func WithTimestamp() Option {
+	return func(l *Logger) {
+		l.SetFlags(log.LstdFlags)
 	}
+}
+
+// New creates a new Logger instance with the given options
+func New(opts ...Option) *Logger {
+	l := &Logger{
+		Logger: log.New(os.Stderr, prefix, 0),
+	}
+	for _, opt := range opts {
+		opt(l)
+	}
+	return l
 }
 
 // Error logs an error message with red color

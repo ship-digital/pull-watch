@@ -11,36 +11,54 @@ import (
 	"github.com/ship-digital/pull-watch/internal/executor"
 )
 
-type Repository struct {
-	dir      string
+// Repository defines the interface for git operations
+type Repository interface {
+	GetLatestCommit(ctx context.Context) (string, error)
+	GetRemoteCommit(ctx context.Context) (string, error)
+	Fetch(ctx context.Context) error
+	Pull(ctx context.Context) (string, error)
+	GetCurrentBranch(ctx context.Context) (string, error)
+	IsClean(ctx context.Context) (bool, error)
+	CompareCommits(ctx context.Context, local, remote string) (CommitComparisonResult, error)
+}
+
+// GitRepository implements the Repository interface
+type GitRepository struct {
 	cfg      *config.Config
 	executor executor.CommandExecutor
 }
 
-func New(dir string, cfg *config.Config) *Repository {
-	return &Repository{
-		dir:      dir,
+// Option configures a GitRepository
+type Option func(*GitRepository)
+
+// WithExecutor sets a custom executor
+func WithExecutor(exec executor.CommandExecutor) Option {
+	return func(r *GitRepository) {
+		r.executor = exec
+	}
+}
+
+func New(cfg *config.Config, opts ...Option) *GitRepository {
+	r := &GitRepository{
 		cfg:      cfg,
 		executor: executor.New(cfg),
 	}
-}
 
-// NewWithExecutor creates a new Repository with a custom executor (useful for testing)
-func NewWithExecutor(dir string, exec executor.CommandExecutor) *Repository {
-	return &Repository{
-		dir:      dir,
-		executor: exec,
+	for _, opt := range opts {
+		opt(r)
 	}
+
+	return r
 }
 
-func (r *Repository) execGitCmd(ctx context.Context, args ...string) (string, error) {
+func (r *GitRepository) execGitCmd(ctx context.Context, args ...string) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	return r.executor.ExecuteCommand(ctx, "git", args...)
 }
 
-func (r *Repository) GetLatestCommit(ctx context.Context) (string, error) {
+func (r *GitRepository) GetLatestCommit(ctx context.Context) (string, error) {
 	output, err := r.execGitCmd(ctx, "rev-parse", "HEAD")
 	if err != nil {
 		return "", err
@@ -48,16 +66,16 @@ func (r *Repository) GetLatestCommit(ctx context.Context) (string, error) {
 	return strings.TrimSpace(output), nil
 }
 
-func (r *Repository) Fetch(ctx context.Context) error {
-	_, err := r.executor.ExecuteCommand(ctx, "git", "-C", r.dir, "fetch")
+func (r *GitRepository) Fetch(ctx context.Context) error {
+	_, err := r.executor.ExecuteCommand(ctx, "git", "-C", r.cfg.GitDir, "fetch")
 	return err
 }
 
-func (r *Repository) Pull(ctx context.Context) (string, error) {
+func (r *GitRepository) Pull(ctx context.Context) (string, error) {
 	return r.execGitCmd(ctx, "pull")
 }
 
-func (r *Repository) GetRemoteCommit(ctx context.Context) (string, error) {
+func (r *GitRepository) GetRemoteCommit(ctx context.Context) (string, error) {
 	// Get upstream branch (e.g. "origin/main")
 	remoteBranch, err := r.execGitCmd(ctx, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
 	if err != nil {
@@ -97,7 +115,7 @@ func (r *Repository) GetRemoteCommit(ctx context.Context) (string, error) {
 }
 
 // GetCurrentBranch returns the name of the current branch
-func (r *Repository) GetCurrentBranch(ctx context.Context) (string, error) {
+func (r *GitRepository) GetCurrentBranch(ctx context.Context) (string, error) {
 	output, err := r.executor.ExecuteCommand(ctx, "git", "rev-parse", "--abbrev-ref", "HEAD")
 	if err != nil {
 		return "", err
@@ -106,7 +124,7 @@ func (r *Repository) GetCurrentBranch(ctx context.Context) (string, error) {
 }
 
 // IsClean returns true if the working directory is clean (no uncommitted changes)
-func (r *Repository) IsClean(ctx context.Context) (bool, error) {
+func (r *GitRepository) IsClean(ctx context.Context) (bool, error) {
 	output, err := r.executor.ExecuteCommand(ctx, "git", "status", "--porcelain")
 	if err != nil {
 		return false, err

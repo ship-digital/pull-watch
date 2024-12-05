@@ -42,7 +42,7 @@ func (e *DefaultExecutor) ExecuteCommand(ctx context.Context, name string, args 
 	cmd.Stderr = &stderr
 
 	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("command failed: %v\nstderr: %s", err, stderr.String())
+		return "", fmt.Errorf("command failed: %w\nstderr: %s", err, stderr.String())
 	}
 
 	return strings.TrimSpace(stdout.String()), nil

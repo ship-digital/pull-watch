@@ -8,15 +8,19 @@ import (
 )
 
 func setProcessGroup(cmd *exec.Cmd) {
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	// Don't set process group for now
 }
 
 func terminateProcess(cmd *exec.Cmd) error {
-	// Send SIGTERM to process group
-	return syscall.Kill(-cmd.Process.Pid, syscall.SIGTERM)
+	if cmd.Process == nil {
+		return nil
+	}
+	return cmd.Process.Signal(syscall.SIGTERM)
 }
 
 func killProcess(cmd *exec.Cmd) error {
-	// Send SIGKILL to process group
-	return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+	if cmd.Process == nil {
+		return nil
+	}
+	return cmd.Process.Kill()
 }

@@ -21,11 +21,13 @@ type MainCommand struct {
 	log *logger.Logger
 
 	// Flag values
-	pollInterval time.Duration
-	gitDir       string
-	verbose      bool
-	graceful     bool
-	stopTimeout  time.Duration
+	pollInterval  time.Duration
+	gitDir        string
+	verbose       bool
+	graceful      bool
+	stopTimeout   time.Duration
+	runOnStart    bool
+	showTimestamp bool
 }
 
 func (c *MainCommand) Run(args []string) int {
@@ -58,6 +60,8 @@ func (c *MainCommand) Run(args []string) int {
 	flags.BoolVar(&c.verbose, "verbose", false, "Enable verbose logging")
 	flags.BoolVar(&c.graceful, "graceful", false, "Try graceful stop before force kill")
 	flags.DurationVar(&c.stopTimeout, "stop-timeout", 5*time.Second, "Timeout for graceful stop before force kill")
+	flags.BoolVar(&c.runOnStart, "run-on-start", false, "Run command on startup regardless of git state")
+	flags.BoolVar(&c.showTimestamp, "timestamp", false, "Show timestamps in logs")
 
 	// Parse only the flags before "--"
 	if err := flags.Parse(args[:cmdIndex]); err != nil {
@@ -71,17 +75,24 @@ func (c *MainCommand) Run(args []string) int {
 		c.ui.Output(c.Help())
 		return 1
 	}
+	// Initialize logger with timestamp option if enabled
+	var opts []logger.Option
+	if c.showTimestamp {
+		opts = append(opts, logger.WithTimestamp())
+	}
 
-	c.log = logger.New()
+	c.log = logger.New(opts...)
 
 	cfg := &config.Config{
-		PollInterval: c.pollInterval,
-		Command:      cmdArgs,
-		GitDir:       c.gitDir,
-		Verbose:      c.verbose,
-		GracefulStop: c.graceful,
-		StopTimeout:  c.stopTimeout,
-		Logger:       c.log,
+		PollInterval:  c.pollInterval,
+		Command:       cmdArgs,
+		GitDir:        c.gitDir,
+		Verbose:       c.verbose,
+		GracefulStop:  c.graceful,
+		StopTimeout:   c.stopTimeout,
+		Logger:        c.log,
+		RunOnStart:    c.runOnStart,
+		ShowTimestamp: c.showTimestamp,
 	}
 
 	if err := runner.Watch(cfg); err != nil {
@@ -99,6 +110,8 @@ func (c *MainCommand) Help() string {
 	flags.BoolVar(&c.verbose, "verbose", false, "Enable verbose logging")
 	flags.BoolVar(&c.graceful, "graceful", false, "Try graceful stop before force kill")
 	flags.DurationVar(&c.stopTimeout, "stop-timeout", 5*time.Second, "Timeout for graceful stop before force kill")
+	flags.BoolVar(&c.runOnStart, "run-on-start", false, "Run command on startup regardless of git state")
+	flags.BoolVar(&c.showTimestamp, "timestamp", false, "Show timestamps in logs")
 
 	var buf strings.Builder
 	flags.SetOutput(&buf)
