@@ -17,6 +17,8 @@ type CommandExecutor interface {
 	GetConfig() *config.Config
 }
 
+var _ CommandExecutor = &DefaultExecutor{}
+
 // DefaultExecutor is the real command executor
 type DefaultExecutor struct {
 	cfg *config.Config
