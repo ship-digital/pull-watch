@@ -31,10 +31,10 @@ type MainCommand struct {
 }
 
 func (c *MainCommand) Run(args []string) int {
-	if len(args) == 0 {
-		c.ui.Error("Error: no arguments provided")
+	// Show help if no args or help flags
+	if len(args) == 0 || (len(args) > 0 && (args[0] == "-h" || args[0] == "--help")) {
 		c.ui.Output(c.Help())
-		return 1
+		return 0
 	}
 
 	// Find the index of "--" separator
@@ -95,7 +95,7 @@ func (c *MainCommand) Run(args []string) int {
 		ShowTimestamp: c.showTimestamp,
 	}
 
-	if err := runner.Watch(cfg); err != nil {
+	if err := runner.Run(cfg); err != nil {
 		c.ui.Error(fmt.Sprintf("Error: %v", err))
 		return 1
 	}
@@ -120,7 +120,9 @@ func (c *MainCommand) Help() string {
 	return fmt.Sprintf(`
 Usage: pull-watch [options] -- <command>
 
-  Watch git repository for changes and run commands.
+ Watch git repository for remote changes and run commands.
+
+ It's like: 'git pull && <command>' but with polling and automatic process management.
 
 Options:
 %s`, buf.String())

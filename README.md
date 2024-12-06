@@ -59,25 +59,30 @@ choco install pull-watch
 ## 🎮 Usage
 
 ```
-pull-watch [options] -- <command>
-
-Options:
-  -git-dir string
-        Git repository directory (default ".")
-  -graceful
-        Try graceful stop before force kill
-  -interval duration
-        Poll interval (e.g. 15s, 1m) (default 15s)
-  -run-on-start
-        Run command on startup regardless of git state
-  -stop-timeout duration
-        Timeout for graceful stop before force kill (default 5s)
-  -timestamp
-        Show timestamps in logs
-  -verbose
-        Enable verbose logging
+  
+  Usage: pull-watch [options] -- <command>
+  
+   Watch git repository for remote changes and run commands.
+  
+   It's like: 'git pull && <command>' but with polling and automatic process management.
+  
+  Options:
+    -git-dir string
+      	Git repository directory (default ".")
+    -graceful
+      	Try graceful stop before force kill
+    -interval duration
+      	Poll interval (e.g. 15s, 1m) (default 15s)
+    -run-on-start
+      	Run command on startup regardless of git state
+    -stop-timeout duration
+      	Timeout for graceful stop before force kill (default 5s)
+    -timestamp
+      	Show timestamps in logs
+    -verbose
+      	Enable verbose logging
+  
 ```
-
 ## 🌟 Examples
 
 ### Watch current directory and restart a server when changes are detected:

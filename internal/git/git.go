@@ -19,8 +19,10 @@ type Repository interface {
 	Pull(ctx context.Context) (string, error)
 	GetCurrentBranch(ctx context.Context) (string, error)
 	IsClean(ctx context.Context) (bool, error)
-	CompareCommits(ctx context.Context, local, remote string) (CommitComparisonResult, error)
+	HandleCommitComparison(ctx context.Context, localCommit, remoteCommit string) (CommitComparisonResult, error)
 }
+
+var _ Repository = &GitRepository{}
 
 // GitRepository implements the Repository interface
 type GitRepository struct {

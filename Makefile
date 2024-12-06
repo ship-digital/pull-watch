@@ -1,4 +1,4 @@
-.PHONY: build install run test clean release-dry-run help
+.PHONY: build install run test clean release-dry-run help update-usage
 
 # Get the version from git tag, fallback to dev
 VERSION ?= $(shell git describe --tags 2>/dev/null || echo "dev")
@@ -37,6 +37,10 @@ release-dry-run: ## Test the release process without publishing
 # Build for all platforms without publishing
 build-all: ## Build for all platforms (binaries will be in dist/)
 	goreleaser build --snapshot --clean
+
+update-usage: ## Update README.md usage section with current help output
+	@chmod +x scripts/update_usage.sh
+	@./scripts/update_usage.sh
 
 # Default target
 .DEFAULT_GOAL := help
