@@ -30,6 +30,8 @@ Guards your watch, your time, avoids wasting it, get it? No? Never mind. I am ju
 - 📢 Verbose logging option (for when you're feeling chatty)
 - 🛡️ Proper signal handling (catches signals like a pro)
 - ⏱️ Context-aware git operations with timeouts (patience is a virtue, but timeouts are better)
+- 🔄 Run on start option (for the eager beavers)
+- ⌚ Optional timestamps in logs (when you need to know when things happened)
 
 ## 🚀 Installation
 
@@ -57,21 +59,30 @@ choco install pull-watch
 ## 🎮 Usage
 
 ```
-pull-watch [options] -- <command>
-
-Options:
-  -interval duration
-        Poll interval (e.g. 15s, 1m) (default 15s)
-  -git-dir string
-        Git repository directory (default ".")
-  -verbose
-        Enable verbose logging
-  -graceful
-        Try graceful stop before force kill
-  -stop-timeout duration
-        Timeout for graceful stop before force kill (default 5s)
+  
+  Usage: pull-watch [options] -- <command>
+  
+   Watch git repository for remote changes and run commands.
+  
+   It's like: 'git pull && <command>' but with polling and automatic process management.
+  
+  Options:
+    -git-dir string
+      	Git repository directory (default ".")
+    -graceful
+      	Try graceful stop before force kill
+    -interval duration
+      	Poll interval (e.g. 15s, 1m) (default 15s)
+    -run-on-start
+      	Run command on startup regardless of git state
+    -stop-timeout duration
+      	Timeout for graceful stop before force kill (default 5s)
+    -timestamp
+      	Show timestamps in logs
+    -verbose
+      	Enable verbose logging
+  
 ```
-
 ## 🌟 Examples
 
 ### Watch current directory and restart a server when changes are detected:
