@@ -4,10 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"os/signal"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
@@ -16,101 +14,48 @@ import (
 	"github.com/ship-digital/pull-watch/internal/logger"
 )
 
-var (
-	initialBackoff = 5 * time.Second
-	maxBackoff     = 5 * time.Minute
-)
+// WatchOption configures the Watch function
+type WatchOption func(*watchOptions)
 
-type ProcessManager struct {
-	mu          sync.Mutex
-	cmd         *exec.Cmd
-	doneChan    chan struct{}
-	stopped     bool
-	logger      *logger.Logger
-	lastLogTime time.Time
-	backoff     time.Duration
+type watchOptions struct {
+	repository     git.Repository
+	processManager Processor
 }
 
-func (pm *ProcessManager) Start(cfg *config.Config) error {
-	pm.mu.Lock()
-	defer pm.mu.Unlock()
-
-	// Reset backoff when starting new process
-	pm.backoff = 0
-	pm.lastLogTime = time.Time{}
-
-	// Make sure any previous process is fully cleaned up
-	if pm.cmd != nil {
-		if err := pm.forceStop(); err != nil && cfg.Verbose {
-			pm.logger.Error("Failed to clean up previous process: %v", err)
-		}
-		pm.cmd = nil
-	}
-
-	pm.stopped = false
-	pm.doneChan = make(chan struct{})
-	pm.cmd = exec.Command(cfg.Command[0], cfg.Command[1:]...)
-	pm.cmd.Stdout = os.Stdout
-	pm.cmd.Stderr = os.Stderr
-	pm.cmd.Stdin = os.Stdin
-
-	setProcessGroup(pm.cmd)
-
-	if err := pm.cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start command: %w", err)
-	}
-
-	go func() {
-		pm.cmd.Wait()
-		pm.mu.Lock()
-		close(pm.doneChan)
-		pm.cmd = nil
-		pm.mu.Unlock()
-	}()
-
-	return nil
-}
-
-func (pm *ProcessManager) Stop(cfg *config.Config) error {
-	pm.mu.Lock()
-	defer pm.mu.Unlock()
-
-	if pm.cmd == nil || pm.cmd.Process == nil {
-		return nil
-	}
-
-	pm.stopped = true
-
-	if cfg.GracefulStop {
-		return pm.gracefulStop(cfg.StopTimeout)
-	}
-	return pm.forceStop()
-}
-
-func (pm *ProcessManager) gracefulStop(timeout time.Duration) error {
-	if err := terminateProcess(pm.cmd); err != nil {
-		return pm.forceStop()
-	}
-
-	select {
-	case <-pm.doneChan:
-		return nil
-	case <-time.After(timeout):
-		return pm.forceStop()
+// WithRepository sets a custom repository implementation
+func WithRepository(repo git.Repository) WatchOption {
+	return func(opts *watchOptions) {
+		opts.repository = repo
 	}
 }
 
-func (pm *ProcessManager) forceStop() error {
-	return killProcess(pm.cmd)
+// WithProcessManager sets a custom process manager for testing
+func WithProcessManager(pm Processor) WatchOption {
+	return func(opts *watchOptions) {
+		opts.processManager = pm
+	}
 }
 
-func Watch(cfg *config.Config) error {
-	log := logger.New()
-	repo := git.New(cfg.GitDir)
+func Run(cfg *config.Config, opts ...WatchOption) error {
+	options := &watchOptions{}
+	for _, opt := range opts {
+		opt(options)
+	}
+
+	repo := options.repository
+	if repo == nil {
+		repo = git.New(cfg)
+	}
+
+	pm := options.processManager
+	if pm == nil {
+		pm = New(cfg)
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	lastLocalCommit, err := repo.GetLatestLocalCommit(ctx)
+	lastLocalCommit, err := repo.GetLatestCommit(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get initial commit: %w", err)
 	}
@@ -121,22 +66,49 @@ func Watch(cfg *config.Config) error {
 	}
 
 	if cfg.Verbose {
-		log.Info("Starting watch with %v interval", cfg.PollInterval)
-		log.Info("Local commit: %s", lastLocalCommit)
-		log.Info("Remote commit: %s", lastRemoteCommit)
-		log.Info("Command: %s", strings.Join(cfg.Command, " "))
+		cfg.Logger.MultiColor(
+			logger.InfoSegment("Starting watch with "),
+			logger.HighlightSegment(cfg.PollInterval.String()),
+		)
+		cfg.Logger.MultiColor(
+			logger.InfoSegment("Local commit: "),
+			logger.HighlightSegment(lastLocalCommit),
+		)
+		cfg.Logger.MultiColor(
+			logger.InfoSegment("Remote commit: "),
+			logger.HighlightSegment(lastRemoteCommit),
+		)
+		cfg.Logger.MultiColor(
+			logger.InfoSegment("Command: "),
+			logger.HighlightSegment(strings.Join(cfg.Command, " ")),
+		)
 	}
 
-	if lastLocalCommit != lastRemoteCommit {
-		log.Info("Pulling changes...")
-		if _, err := repo.Pull(ctx); err != nil {
-			return fmt.Errorf("failed to pull initial changes: %w", err)
+	comparison, err := repo.HandleCommitComparison(ctx, lastLocalCommit, lastRemoteCommit)
+	if err != nil {
+		return err
+	}
+
+	shouldStart := cfg.RunOnStart || comparison == git.AIsAncestorOfB
+
+	if cfg.Verbose {
+		if shouldStart && cfg.RunOnStart {
+			cfg.Logger.MultiColor(
+				logger.HighlightSegment("Starting"),
+				logger.InfoSegment(" command on startup"),
+			)
+		} else if !shouldStart {
+			cfg.Logger.MultiColor(
+				logger.HighlightSegment("Not starting"),
+				logger.InfoSegment(" command on startup (use -run-on-start to override)"),
+			)
 		}
 	}
 
-	pm := &ProcessManager{logger: log}
-	if err := pm.Start(cfg); err != nil {
-		return err
+	if shouldStart {
+		if err := pm.Start(); err != nil {
+			return err
+		}
 	}
 
 	sigChan := make(chan os.Signal, 1)
@@ -150,46 +122,57 @@ func Watch(cfg *config.Config) error {
 		select {
 		case <-ticker.C:
 			if err := checkAndUpdate(ctx, cfg, repo, &lastLocalCommit, pm, processExited); err != nil && cfg.Verbose {
-				log.Error("Error during update check: %v", err)
+				cfg.Logger.MultiColor(
+					logger.ErrorSegment("Error during update check: "),
+					logger.HighlightSegment(fmt.Sprintf("%v", err)),
+				)
 			}
 			processExited = false
 
-		case <-pm.doneChan:
+		case <-pm.GetDoneChan():
 			if !processExited {
 				processExited = true
 				now := time.Now()
 
 				// Initialize backoff on first exit
-				if pm.backoff == 0 {
-					pm.backoff = initialBackoff
+				if pm.GetBackoff() == 0 {
+					pm.SetBackoff(initialBackoff)
 				}
 
 				// Log only if enough time has passed
-				if now.Sub(pm.lastLogTime) >= pm.backoff {
+				if now.Sub(pm.GetLastLogTime()) >= pm.GetBackoff() {
 					if cfg.Verbose {
-						log.Info("Process exited, waiting for changes before restart")
+						cfg.Logger.Info("Process exited, waiting for changes before restart")
 					}
-					pm.lastLogTime = now
+					pm.SetLastLogTime(now)
 					// Increase backoff for next time (cap at maxBackoff)
-					pm.backoff = time.Duration(float64(pm.backoff) * 1.5)
-					if pm.backoff > maxBackoff {
-						pm.backoff = maxBackoff
+					newBackoff := time.Duration(float64(pm.GetBackoff()) * 1.5)
+					if newBackoff > maxBackoff {
+						newBackoff = maxBackoff
 					}
+					pm.SetBackoff(newBackoff)
 				}
 			}
 
 		case sig := <-sigChan:
 			if cfg.Verbose {
-				log.Info("Received signal %v, shutting down...", sig)
+				cfg.Logger.MultiColor(
+					logger.InfoSegment("Received signal "),
+					logger.HighlightSegment(fmt.Sprintf("%v", sig)),
+					logger.InfoSegment(", shutting down..."),
+				)
 			}
 			// Stop the process and wait for it to finish before exiting
-			if err := pm.Stop(cfg); err != nil {
-				log.Error("Error stopping process: %v", err)
+			if err := pm.Stop(); err != nil {
+				cfg.Logger.MultiColor(
+					logger.ErrorSegment("Error stopping process: "),
+					logger.HighlightSegment(fmt.Sprintf("%v", err)),
+				)
 				return err
 			}
 			// Wait for process to fully terminate
 			select {
-			case <-pm.doneChan:
+			case <-pm.GetDoneChan():
 				return nil
 			case <-time.After(5 * time.Second):
 				// Force exit if process doesn't terminate in time
@@ -199,9 +182,8 @@ func Watch(cfg *config.Config) error {
 	}
 }
 
-func checkAndUpdate(ctx context.Context, cfg *config.Config, repo *git.Repository, lastCommit *string, pm *ProcessManager, shouldStart bool) error {
-	// Get local and remote hashes
-	localHash, err := repo.GetLatestLocalCommit(ctx)
+func checkAndUpdate(ctx context.Context, cfg *config.Config, repo git.Repository, lastCommit *string, pm Processor, shouldStart bool) error {
+	localHash, err := repo.GetLatestCommit(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get local commit: %w", err)
 	}
@@ -211,32 +193,28 @@ func checkAndUpdate(ctx context.Context, cfg *config.Config, repo *git.Repositor
 		return fmt.Errorf("failed to get remote commit: %w", err)
 	}
 
-	// Only pull and restart if remote hash differs
-	if remoteHash != localHash {
-		if cfg.Verbose {
-			pm.logger.Info("\nChanges detected!")
-			pm.logger.Info("Local commit: %s", localHash)
-			pm.logger.Info("Remote commit: %s", remoteHash)
-		}
+	comparison, err := repo.HandleCommitComparison(ctx, localHash, remoteHash)
+	if err != nil {
+		return err
+	}
 
-		pullOutput, err := repo.Pull(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to pull changes: %w", err)
-		}
-
+	if comparison == git.AIsAncestorOfB {
 		if cfg.Verbose {
-			pm.logger.Info("Pull output: %s", pullOutput)
+			pm.GetLogger().Info("\nChanges detected!")
 		}
 
 		*lastCommit = remoteHash
 
-		if err := pm.Stop(cfg); err != nil && cfg.Verbose {
-			pm.logger.Error("Error stopping process: %v", err)
+		if err := pm.Stop(); err != nil && cfg.Verbose {
+			pm.GetLogger().MultiColor(
+				logger.ErrorSegment("Error stopping process: "),
+				logger.HighlightSegment(fmt.Sprintf("%v", err)),
+			)
 		}
 
 		time.Sleep(100 * time.Millisecond)
 
-		if err := pm.Start(cfg); err != nil {
+		if err := pm.Start(); err != nil {
 			return fmt.Errorf("failed to restart command: %w", err)
 		}
 	}
