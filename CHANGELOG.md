@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/ship-digital/pull-watch/compare/v1.3.3...v1.4.0) (2024-12-11)
+
+
+### Features
+
+* Enhance process management with PID tracking and error handling ([#25](https://github.com/ship-digital/pull-watch/issues/25)) ([49fa8a4](https://github.com/ship-digital/pull-watch/commit/49fa8a49846b27b5c6ea845f9d8ac8f5de42db4d))
+
 ## [1.3.3](https://github.com/ship-digital/pull-watch/compare/v1.3.2...v1.3.3) (2024-12-11)
 
 
