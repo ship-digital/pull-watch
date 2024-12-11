@@ -19,8 +19,29 @@ const (
 	CommitsDiverged               CommitComparisonResult = 2
 )
 
+// commitExistsLocally checks if a commit exists in the local repository
+func (r *GitRepository) commitExistsLocally(ctx context.Context, commit string) bool {
+	_, err := r.executor.ExecuteCommand(ctx, "git", "cat-file", "-e", commit)
+	return err == nil
+}
+
 // IsAncestor checks if commitA is an ancestor of commitB
 func (r *GitRepository) IsAncestor(ctx context.Context, commitA, commitB string) (bool, error) {
+	// Check if commits exist locally
+	for _, commit := range []string{commitA, commitB} {
+		if !r.commitExistsLocally(ctx, commit) {
+			// Commit not found locally, try fetching
+			if err := r.Fetch(ctx); err != nil {
+				return false, fmt.Errorf("failed to fetch after missing commit %s: %w", commit, err)
+			}
+			// Verify commit exists after fetch
+			if !r.commitExistsLocally(ctx, commit) {
+				return false, fmt.Errorf("commit %s not found even after fetch", commit)
+			}
+			break // Only need to fetch once
+		}
+	}
+
 	_, err := r.executor.ExecuteCommand(ctx, "git", "-C", r.cfg.GitDir, "merge-base", "--is-ancestor", commitA, commitB)
 	if err != nil {
 		var exitErr *exec.ExitError
