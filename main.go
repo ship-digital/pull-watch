@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -173,7 +174,11 @@ type VersionCommand struct {
 }
 
 func (c *VersionCommand) Run(_ []string) int {
-	c.ui.Output(fmt.Sprintf("pull-watch version %s", c.Version))
+	if info, ok := debug.ReadBuildInfo(); ok {
+		version = info.Main.Version
+	}
+
+	c.ui.Output(fmt.Sprintf("pull-watch version (%s) %s", c.Version, version))
 	return 0
 }
 
