@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/ship-digital/pull-watch/compare/v1.3.0...v1.3.1) (2024-12-11)
+
+
+### Bug Fixes
+
+* 🐛 Add IsRunning method to ProcessManager for improved process state management ([f2d2c95](https://github.com/ship-digital/pull-watch/commit/f2d2c95574b58c67df97b0321e5714a23bbaad9a))
+
 ## [1.3.0](https://github.com/ship-digital/pull-watch/compare/v1.2.0...v1.3.0) (2024-12-11)
 
 
