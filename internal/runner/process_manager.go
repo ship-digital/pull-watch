@@ -21,6 +21,7 @@ type Processor interface {
 	GetLastLogTime() time.Time
 	SetLastLogTime(t time.Time)
 	GetLogger() *logger.Logger
+	IsRunning() bool
 }
 
 var (
@@ -97,7 +98,7 @@ func (pm *ProcessManager) Stop() error {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
-	if pm.cmd == nil || pm.cmd.Process == nil {
+	if !pm.IsRunning() {
 		return nil
 	}
 
@@ -131,6 +132,10 @@ func (pm *ProcessManager) SetLastLogTime(t time.Time) {
 
 func (pm *ProcessManager) GetLogger() *logger.Logger {
 	return pm.logger
+}
+
+func (pm *ProcessManager) IsRunning() bool {
+	return pm.cmd != nil && pm.cmd.Process != nil
 }
 
 func (pm *ProcessManager) gracefulStop(timeout time.Duration) error {
