@@ -158,6 +158,11 @@ func Run(cfg *config.Config, opts ...WatchOption) error {
 				logger.InfoSegment(", shutting down..."),
 			)
 
+			// If process was never started, we can exit immediately
+			if !pm.IsRunning() {
+				return nil
+			}
+
 			// Stop the process and wait for it to finish before exiting
 			if err := pm.Stop(); err != nil {
 				cfg.Logger.MultiColor(logger.DefaultLevel,
