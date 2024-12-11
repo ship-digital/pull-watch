@@ -13,7 +13,7 @@ help: ## Show this help
 	@grep -h "##" $(MAKEFILE_LIST) | grep -v grep | sed -e 's/\(.*\):.*##\(.*\)/\1:\2/' | column -t -s ":"
 
 build: ## Build the binary locally
-	go build ${LDFLAGS} -o bin/${BINARY_NAME} ./cmd/pull-watch
+	go build ${LDFLAGS} -o bin/${BINARY_NAME}
 
 install: build ## Install the binary to /usr/local/bin (might require sudo)
 	install -m 755 bin/${BINARY_NAME} ${INSTALL_PATH}/${BINARY_NAME}
@@ -22,7 +22,7 @@ uninstall: ## Remove the installed binary (might require sudo)
 	rm -f ${INSTALL_PATH}/${BINARY_NAME}
 
 run: ## Run the application (example: make run ARGS="-- echo hello")
-	go run ${LDFLAGS} ./cmd/pull-watch ${ARGS}
+	go run ${LDFLAGS} . ${ARGS}
 
 test: ## Run tests
 	go test -v ./...
