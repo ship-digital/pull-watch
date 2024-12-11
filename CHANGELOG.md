@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.3](https://github.com/ship-digital/pull-watch/compare/v1.3.2...v1.3.3) (2024-12-11)
+
+
+### Bug Fixes
+
+* Enhance commit existence checks in GitRepository ([#23](https://github.com/ship-digital/pull-watch/issues/23)) ([4aea4b3](https://github.com/ship-digital/pull-watch/commit/4aea4b3044dd4f5c1b8b3d3002616f9e2a1f27ef))
+
 ## [1.3.2](https://github.com/ship-digital/pull-watch/compare/v1.3.1...v1.3.2) (2024-12-11)
 
 
