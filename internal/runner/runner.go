@@ -2,6 +2,7 @@ package runner
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ship-digital/pull-watch/internal/config"
+	"github.com/ship-digital/pull-watch/internal/errz"
 	"github.com/ship-digital/pull-watch/internal/git"
 	"github.com/ship-digital/pull-watch/internal/logger"
 )
@@ -121,10 +123,13 @@ func Run(cfg *config.Config, opts ...WatchOption) error {
 		select {
 		case <-ticker.C:
 			if err := checkAndUpdate(ctx, cfg, repo, &lastLocalCommit, pm, processExited); err != nil {
-				cfg.Logger.MultiColor(logger.DefaultLevel,
-					logger.ErrorSegment("Error during update check: "),
-					logger.HighlightSegment(fmt.Sprintf("%v", err)),
-				)
+				//TODO: This is a bit of a hack, but it works for now
+				if !errors.Is(err, os.ErrProcessDone) && !strings.Contains(err.Error(), errz.ErrInterrupt.Error()) {
+					cfg.Logger.MultiColor(logger.DefaultLevel,
+						logger.ErrorSegment("Error during update check: "),
+						logger.HighlightSegment(fmt.Sprintf("%v", err)),
+					)
+				}
 			}
 			processExited = false
 
@@ -140,7 +145,11 @@ func Run(cfg *config.Config, opts ...WatchOption) error {
 
 				// Log only if enough time has passed
 				if now.Sub(pm.GetLastLogTime()) >= pm.GetBackoff() {
-					cfg.Logger.Info("Process exited, waiting for changes before restart")
+					cfg.Logger.MultiColor(logger.DefaultLevel,
+						logger.InfoSegment("Process with PID "),
+						logger.HighlightSegment(fmt.Sprintf("%d", pm.(*ProcessManager).GetPID())),
+						logger.InfoSegment(" exited, waiting for changes before restart"),
+					)
 					pm.SetLastLogTime(now)
 					// Increase backoff for next time (cap at maxBackoff)
 					newBackoff := time.Duration(float64(pm.GetBackoff()) * 1.5)
@@ -166,7 +175,9 @@ func Run(cfg *config.Config, opts ...WatchOption) error {
 			// Stop the process and wait for it to finish before exiting
 			if err := pm.Stop(); err != nil {
 				cfg.Logger.MultiColor(logger.DefaultLevel,
-					logger.ErrorSegment("Error stopping process: "),
+					logger.ErrorSegment("Error stopping process with PID "),
+					logger.HighlightSegment(fmt.Sprintf("%d", pm.(*ProcessManager).GetPID())),
+					logger.ErrorSegment(": "),
 					logger.HighlightSegment(fmt.Sprintf("%v", err)),
 				)
 				return err
@@ -206,7 +217,9 @@ func checkAndUpdate(ctx context.Context, cfg *config.Config, repo git.Repository
 
 		if err := pm.Stop(); err != nil {
 			pm.GetLogger().MultiColor(logger.DefaultLevel,
-				logger.ErrorSegment("Error stopping process: "),
+				logger.ErrorSegment("Error stopping process with PID "),
+				logger.HighlightSegment(fmt.Sprintf("%d", pm.(*ProcessManager).GetPID())),
+				logger.ErrorSegment(": "),
 				logger.HighlightSegment(fmt.Sprintf("%v", err)),
 			)
 		}
