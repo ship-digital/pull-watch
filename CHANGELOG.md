@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.2](https://github.com/ship-digital/pull-watch/compare/v1.3.1...v1.3.2) (2024-12-11)
+
+
+### Bug Fixes
+
+* 🐛 Update version output in VersionCommand to include build information ([b8eec3c](https://github.com/ship-digital/pull-watch/commit/b8eec3c896997059bf3c03d1b016e4d30b69cdc5))
+
 ## [1.3.1](https://github.com/ship-digital/pull-watch/compare/v1.3.0...v1.3.1) (2024-12-11)
 
 
