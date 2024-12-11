@@ -63,16 +63,14 @@ func (r *GitRepository) compareCommits(ctx context.Context, commitA, commitB str
 // HandleCommitComparison handles the commit comparison and decides whether to pull changes
 func (repo *GitRepository) HandleCommitComparison(ctx context.Context, localCommit, remoteCommit string) (CommitComparisonResult, error) {
 	// Log commits if verbose
-	if repo.cfg.Verbose {
-		repo.cfg.Logger.MultiColor(
-			logger.InfoSegment("Local commit: "),
-			logger.HighlightSegment(localCommit),
-		)
-		repo.cfg.Logger.MultiColor(
-			logger.InfoSegment("Remote commit: "),
-			logger.HighlightSegment(remoteCommit),
-		)
-	}
+	repo.cfg.Logger.MultiColor(logger.VerboseLevel,
+		logger.InfoSegment("Local commit: "),
+		logger.HighlightSegment(localCommit),
+	)
+	repo.cfg.Logger.MultiColor(logger.VerboseLevel,
+		logger.InfoSegment("Remote commit: "),
+		logger.HighlightSegment(remoteCommit),
+	)
 
 	// Compare commits
 	comparison, err := repo.compareCommits(ctx, localCommit, remoteCommit)
@@ -83,50 +81,44 @@ func (repo *GitRepository) HandleCommitComparison(ctx context.Context, localComm
 	// Handle different comparison results
 	switch comparison {
 	case AIsAncestorOfB:
-		if repo.cfg.Verbose {
-			repo.cfg.Logger.MultiColor(
-				logger.InfoSegment("Local commit is "),
-				logger.HighlightSegment("behind"),
-				logger.InfoSegment(" remote commit, "),
-				logger.HighlightSegment("pulling changes..."),
-			)
-		}
+		repo.cfg.Logger.MultiColor(logger.DefaultLevel,
+			logger.InfoSegment("Local commit is "),
+			logger.HighlightSegment("behind"),
+			logger.InfoSegment(" remote commit, "),
+			logger.HighlightSegment("pulling changes..."),
+		)
+
 		if _, err := repo.Pull(ctx); err != nil {
 			return UnknownCommitComparisonResult, fmt.Errorf("failed to pull changes: %w", err)
 		}
 		return AIsAncestorOfB, nil
 
 	case BIsAncestorOfA:
-		if repo.cfg.Verbose {
-			repo.cfg.Logger.MultiColor(
-				logger.InfoSegment("Local commit is "),
-				logger.HighlightSegment("ahead"),
-				logger.InfoSegment(" of remote commit, "),
-				logger.HighlightSegment("not pulling."),
-			)
-		}
+		repo.cfg.Logger.MultiColor(logger.VerboseLevel,
+			logger.InfoSegment("Local commit is "),
+			logger.HighlightSegment("ahead"),
+			logger.InfoSegment(" of remote commit, "),
+			logger.HighlightSegment("not pulling."),
+		)
 		return BIsAncestorOfA, nil
 
 	case CommitsDiverged:
-		if repo.cfg.Verbose {
-			repo.cfg.Logger.MultiColor(
-				logger.InfoSegment("Local commit and remote commit "),
-				logger.HighlightSegment("have diverged"),
-				logger.InfoSegment(": "),
-				logger.HighlightSegment("not pulling."),
-			)
-		}
+		repo.cfg.Logger.MultiColor(logger.VerboseLevel,
+			logger.InfoSegment("Local commit and remote commit "),
+			logger.HighlightSegment("have diverged"),
+			logger.InfoSegment(": "),
+			logger.HighlightSegment("not pulling."),
+		)
 		return CommitsDiverged, nil
 
 	case CommitsEqual:
-		if repo.cfg.Verbose {
-			repo.cfg.Logger.MultiColor(
-				logger.InfoSegment("Local commit and remote commit "),
-				logger.HighlightSegment("are the same"),
-				logger.InfoSegment(": "),
-				logger.HighlightSegment("not pulling."),
-			)
-		}
+		repo.cfg.Logger.MultiColor(logger.VerboseLevel,
+			logger.InfoSegment("Local commit and remote commit "),
+			logger.HighlightSegment("are the same"),
+			logger.InfoSegment(": "),
+			logger.HighlightSegment("not pulling."),
+		)
+
 		return CommitsEqual, nil
 
 	default:

@@ -10,7 +10,7 @@ type Config struct {
 	PollInterval  time.Duration
 	Command       []string
 	GitDir        string
-	Verbose       bool
+	LogLevel      logger.LogLevel
 	GracefulStop  bool
 	StopTimeout   time.Duration
 	Logger        *logger.Logger

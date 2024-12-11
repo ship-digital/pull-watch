@@ -65,24 +65,23 @@ func Run(cfg *config.Config, opts ...WatchOption) error {
 		return fmt.Errorf("failed to get initial remote commit: %w", err)
 	}
 
-	if cfg.Verbose {
-		cfg.Logger.MultiColor(
-			logger.InfoSegment("Starting watch with "),
-			logger.HighlightSegment(cfg.PollInterval.String()),
-		)
-		cfg.Logger.MultiColor(
-			logger.InfoSegment("Local commit: "),
-			logger.HighlightSegment(lastLocalCommit),
-		)
-		cfg.Logger.MultiColor(
-			logger.InfoSegment("Remote commit: "),
-			logger.HighlightSegment(lastRemoteCommit),
-		)
-		cfg.Logger.MultiColor(
-			logger.InfoSegment("Command: "),
-			logger.HighlightSegment(strings.Join(cfg.Command, " ")),
-		)
-	}
+	cfg.Logger.MultiColor(logger.DefaultLevel,
+		logger.InfoSegment("Starting watch with "),
+		logger.HighlightSegment(cfg.PollInterval.String()),
+		logger.InfoSegment(" interval"),
+	)
+	cfg.Logger.MultiColor(logger.DefaultLevel,
+		logger.InfoSegment("Local commit: "),
+		logger.HighlightSegment(lastLocalCommit),
+	)
+	cfg.Logger.MultiColor(logger.DefaultLevel,
+		logger.InfoSegment("Remote commit: "),
+		logger.HighlightSegment(lastRemoteCommit),
+	)
+	cfg.Logger.MultiColor(logger.DefaultLevel,
+		logger.InfoSegment("Command: "),
+		logger.HighlightSegment(strings.Join(cfg.Command, " ")),
+	)
 
 	comparison, err := repo.HandleCommitComparison(ctx, lastLocalCommit, lastRemoteCommit)
 	if err != nil {
@@ -91,18 +90,18 @@ func Run(cfg *config.Config, opts ...WatchOption) error {
 
 	shouldStart := cfg.RunOnStart || comparison == git.AIsAncestorOfB
 
-	if cfg.Verbose {
-		if shouldStart && cfg.RunOnStart {
-			cfg.Logger.MultiColor(
-				logger.HighlightSegment("Starting"),
-				logger.InfoSegment(" command on startup"),
-			)
-		} else if !shouldStart {
-			cfg.Logger.MultiColor(
-				logger.HighlightSegment("Not starting"),
-				logger.InfoSegment(" command on startup (use -run-on-start to override)"),
-			)
-		}
+	if shouldStart && cfg.RunOnStart {
+		cfg.Logger.MultiColor(logger.DefaultLevel,
+			logger.HighlightSegment("Starting"),
+			logger.InfoSegment(" command on startup"),
+		)
+	} else if !shouldStart {
+		cfg.Logger.MultiColor(logger.DefaultLevel,
+			logger.HighlightSegment("Not starting"),
+			logger.InfoSegment(" command on startup (use "),
+			logger.HighlightSegment("-run-on-start"),
+			logger.InfoSegment(" to override)"),
+		)
 	}
 
 	if shouldStart {
@@ -121,8 +120,8 @@ func Run(cfg *config.Config, opts ...WatchOption) error {
 	for {
 		select {
 		case <-ticker.C:
-			if err := checkAndUpdate(ctx, cfg, repo, &lastLocalCommit, pm, processExited); err != nil && cfg.Verbose {
-				cfg.Logger.MultiColor(
+			if err := checkAndUpdate(ctx, cfg, repo, &lastLocalCommit, pm, processExited); err != nil {
+				cfg.Logger.MultiColor(logger.DefaultLevel,
 					logger.ErrorSegment("Error during update check: "),
 					logger.HighlightSegment(fmt.Sprintf("%v", err)),
 				)
@@ -141,9 +140,7 @@ func Run(cfg *config.Config, opts ...WatchOption) error {
 
 				// Log only if enough time has passed
 				if now.Sub(pm.GetLastLogTime()) >= pm.GetBackoff() {
-					if cfg.Verbose {
-						cfg.Logger.Info("Process exited, waiting for changes before restart")
-					}
+					cfg.Logger.Info("Process exited, waiting for changes before restart")
 					pm.SetLastLogTime(now)
 					// Increase backoff for next time (cap at maxBackoff)
 					newBackoff := time.Duration(float64(pm.GetBackoff()) * 1.5)
@@ -155,16 +152,15 @@ func Run(cfg *config.Config, opts ...WatchOption) error {
 			}
 
 		case sig := <-sigChan:
-			if cfg.Verbose {
-				cfg.Logger.MultiColor(
-					logger.InfoSegment("Received signal "),
-					logger.HighlightSegment(fmt.Sprintf("%v", sig)),
-					logger.InfoSegment(", shutting down..."),
-				)
-			}
+			cfg.Logger.MultiColor(logger.DefaultLevel,
+				logger.InfoSegment("Received signal "),
+				logger.HighlightSegment(fmt.Sprintf("%v", sig)),
+				logger.InfoSegment(", shutting down..."),
+			)
+
 			// Stop the process and wait for it to finish before exiting
 			if err := pm.Stop(); err != nil {
-				cfg.Logger.MultiColor(
+				cfg.Logger.MultiColor(logger.DefaultLevel,
 					logger.ErrorSegment("Error stopping process: "),
 					logger.HighlightSegment(fmt.Sprintf("%v", err)),
 				)
@@ -199,14 +195,12 @@ func checkAndUpdate(ctx context.Context, cfg *config.Config, repo git.Repository
 	}
 
 	if comparison == git.AIsAncestorOfB {
-		if cfg.Verbose {
-			pm.GetLogger().Info("\nChanges detected!")
-		}
+		pm.GetLogger().Info("\nChanges detected!")
 
 		*lastCommit = remoteHash
 
-		if err := pm.Stop(); err != nil && cfg.Verbose {
-			pm.GetLogger().MultiColor(
+		if err := pm.Stop(); err != nil {
+			pm.GetLogger().MultiColor(logger.DefaultLevel,
 				logger.ErrorSegment("Error stopping process: "),
 				logger.HighlightSegment(fmt.Sprintf("%v", err)),
 			)

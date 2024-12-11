@@ -32,12 +32,10 @@ func (e *DefaultExecutor) ExecuteCommand(ctx context.Context, name string, args 
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Dir = e.cfg.GitDir
 
-	if e.cfg.Verbose {
-		e.cfg.Logger.MultiColor(
-			logger.InfoSegment("Executing command: "),
-			logger.HighlightSegment(fmt.Sprintf("%s %s", name, strings.Join(args, " "))),
-		)
-	}
+	e.cfg.Logger.MultiColor(logger.VerboseLevel,
+		logger.InfoSegment("Executing command: "),
+		logger.HighlightSegment(fmt.Sprintf("%s %s", name, strings.Join(args, " "))),
+	)
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout

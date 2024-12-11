@@ -60,8 +60,8 @@ func (pm *ProcessManager) Start() error {
 
 	// Make sure any previous process is fully cleaned up
 	if pm.cmd != nil {
-		if err := pm.forceStop(); err != nil && pm.cfg.Verbose {
-			pm.logger.MultiColor(
+		if err := pm.forceStop(); err != nil {
+			pm.logger.MultiColor(logger.QuietLevel,
 				logger.ErrorSegment("Failed to clean up previous process: "),
 				logger.HighlightSegment(fmt.Sprintf("%v", err)),
 			)
