@@ -2,7 +2,7 @@
 set -e
 
 # Get the help output
-HELP_OUTPUT=$(go run ./cmd/pull-watch -h | sed 's/^/  /')
+HELP_OUTPUT=$(go run . -h | sed 's/^/  /')
 
 # Create temp file
 tmp=$(mktemp)

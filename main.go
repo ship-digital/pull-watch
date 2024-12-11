@@ -23,6 +23,7 @@ type MainCommand struct {
 	// Flag values
 	pollInterval  time.Duration
 	gitDir        string
+	quiet         bool
 	verbose       bool
 	graceful      bool
 	stopTimeout   time.Duration
@@ -58,6 +59,7 @@ func (c *MainCommand) Run(args []string) int {
 	flags.DurationVar(&c.pollInterval, "interval", 15*time.Second, "Poll interval (e.g. 15s, 1m)")
 	flags.StringVar(&c.gitDir, "git-dir", ".", "Git repository directory")
 	flags.BoolVar(&c.verbose, "verbose", false, "Enable verbose logging")
+	flags.BoolVar(&c.quiet, "quiet", false, "Show only errors and warnings")
 	flags.BoolVar(&c.graceful, "graceful", false, "Try graceful stop before force kill")
 	flags.DurationVar(&c.stopTimeout, "stop-timeout", 5*time.Second, "Timeout for graceful stop before force kill")
 	flags.BoolVar(&c.runOnStart, "run-on-start", false, "Run command on startup regardless of git state")
@@ -75,11 +77,30 @@ func (c *MainCommand) Run(args []string) int {
 		c.ui.Output(c.Help())
 		return 1
 	}
-	// Initialize logger with timestamp option if enabled
+
+	// quietVerbose indicates that the user passed in both flags
+	quietVerbose := false
+
+	// Determine log level
+	var logLevel logger.LogLevel
+	switch {
+	case c.verbose && c.quiet:
+		quietVerbose = true
+		logLevel = logger.VerboseLevel
+	case c.verbose:
+		logLevel = logger.VerboseLevel
+	case c.quiet:
+		logLevel = logger.QuietLevel
+	default:
+		logLevel = logger.DefaultLevel
+	}
+
+	// Initialize logger with options
 	var opts []logger.Option
 	if c.showTimestamp {
 		opts = append(opts, logger.WithTimestamp())
 	}
+	opts = append(opts, logger.WithLogLevel(logLevel))
 
 	c.log = logger.New(opts...)
 
@@ -87,12 +108,25 @@ func (c *MainCommand) Run(args []string) int {
 		PollInterval:  c.pollInterval,
 		Command:       cmdArgs,
 		GitDir:        c.gitDir,
-		Verbose:       c.verbose,
+		LogLevel:      logLevel,
 		GracefulStop:  c.graceful,
 		StopTimeout:   c.stopTimeout,
 		Logger:        c.log,
 		RunOnStart:    c.runOnStart,
 		ShowTimestamp: c.showTimestamp,
+	}
+
+	if quietVerbose {
+		c.log.MultiColor(logger.QuietLevel,
+			logger.ErrorSegment("Warning: "),
+			logger.InfoSegment("both "),
+			logger.HighlightSegment("-verbose"),
+			logger.InfoSegment(" and "),
+			logger.HighlightSegment("-quiet"),
+			logger.InfoSegment(" flags set. Only "),
+			logger.HighlightSegment("-verbose"),
+			logger.InfoSegment(" considered!"),
+		)
 	}
 
 	if err := runner.Run(cfg); err != nil {
@@ -108,6 +142,7 @@ func (c *MainCommand) Help() string {
 	flags.DurationVar(&c.pollInterval, "interval", 15*time.Second, "Poll interval (e.g. 15s, 1m)")
 	flags.StringVar(&c.gitDir, "git-dir", ".", "Git repository directory")
 	flags.BoolVar(&c.verbose, "verbose", false, "Enable verbose logging")
+	flags.BoolVar(&c.quiet, "quiet", false, "Show only errors and warnings")
 	flags.BoolVar(&c.graceful, "graceful", false, "Try graceful stop before force kill")
 	flags.DurationVar(&c.stopTimeout, "stop-timeout", 5*time.Second, "Timeout for graceful stop before force kill")
 	flags.BoolVar(&c.runOnStart, "run-on-start", false, "Run command on startup regardless of git state")

@@ -27,7 +27,7 @@ Guards your watch, your time, avoids wasting it, get it? No? Never mind. I am ju
 - 🕒 Configurable poll interval (because sometimes you need a coffee break)
 - 🎯 Graceful process management (no rough handling here!)
 - 📁 Support for different git directories (home is where your .git is)
-- 📢 Verbose logging option (for when you're feeling chatty)
+- 📢 Smart logging levels (quiet, normal, and verbose - you choose how chatty it gets!)
 - 🛡️ Proper signal handling (catches signals like a pro)
 - ⏱️ Context-aware git operations with timeouts (patience is a virtue, but timeouts are better)
 - 🔄 Run on start option (for the eager beavers)
@@ -59,13 +59,13 @@ choco install pull-watch
 ## 🎮 Usage
 
 ```
-  
+
   Usage: pull-watch [options] -- <command>
-  
+
    Watch git repository for remote changes and run commands.
-  
+
    It's like: 'git pull && <command>' but with polling and automatic process management.
-  
+
   Options:
     -git-dir string
       	Git repository directory (default ".")
@@ -73,6 +73,8 @@ choco install pull-watch
       	Try graceful stop before force kill
     -interval duration
       	Poll interval (e.g. 15s, 1m) (default 15s)
+    -quiet
+      	Show only errors and warnings
     -run-on-start
       	Run command on startup regardless of git state
     -stop-timeout duration
@@ -81,7 +83,7 @@ choco install pull-watch
       	Show timestamps in logs
     -verbose
       	Enable verbose logging
-  
+
 ```
 ## 🌟 Examples
 
@@ -107,6 +109,18 @@ pull-watch -- node server.js
 For the gentler souls among us
 ```bash
 pull-watch -graceful -stop-timeout 10s -- ./my-server
+```
+
+### Watch with different logging levels:
+```bash
+# Default mode - shows important info
+pull-watch -- npm start
+
+# Quiet mode - shows only errors and warnings
+pull-watch -quiet -- npm start
+
+# Verbose mode - shows all the details
+pull-watch -verbose -- npm start
 ```
 
 ---
