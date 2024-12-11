@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/ship-digital/pull-watch/compare/v1.1.0...v1.2.0) (2024-12-11)
+
+
+### Features
+
+* 🎉 Introduce main application logic and update build configuration ([05835f8](https://github.com/ship-digital/pull-watch/commit/05835f8524a4aa20037e15da766ef0a3a36953d1))
+
 ## [1.1.0](https://github.com/ship-digital/pull-watch/compare/v1.0.2...v1.1.0) (2024-12-09)
 
 
