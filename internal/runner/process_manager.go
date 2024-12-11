@@ -22,6 +22,7 @@ type Processor interface {
 	SetLastLogTime(t time.Time)
 	GetLogger() *logger.Logger
 	IsRunning() bool
+	GetPID() int
 }
 
 var (
@@ -42,6 +43,7 @@ type ProcessManager struct {
 	logger      *logger.Logger
 	lastLogTime time.Time
 	backoff     time.Duration
+	pid         int
 }
 
 func New(cfg *config.Config) *ProcessManager {
@@ -55,9 +57,10 @@ func (pm *ProcessManager) Start() error {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
-	// Reset backoff when starting new process
+	// Reset backoff and PID when starting new process
 	pm.backoff = 0
 	pm.lastLogTime = time.Time{}
+	pm.pid = 0
 
 	// Make sure any previous process is fully cleaned up
 	if pm.cmd != nil {
@@ -82,6 +85,13 @@ func (pm *ProcessManager) Start() error {
 	if err := pm.cmd.Start(); err != nil {
 		return fmt.Errorf("failed to start command: %w", err)
 	}
+
+	pm.pid = pm.cmd.Process.Pid
+
+	pm.logger.MultiColor(logger.DefaultLevel,
+		logger.InfoSegment("Started process with PID "),
+		logger.HighlightSegment(fmt.Sprintf("%d", pm.pid)),
+	)
 
 	go func() {
 		pm.cmd.Wait()
@@ -138,7 +148,20 @@ func (pm *ProcessManager) IsRunning() bool {
 	return pm.cmd != nil && pm.cmd.Process != nil
 }
 
+func (pm *ProcessManager) GetPID() int {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+	return pm.pid
+}
+
 func (pm *ProcessManager) gracefulStop(timeout time.Duration) error {
+	if pm.cmd != nil && pm.cmd.Process != nil {
+		pm.logger.MultiColor(logger.DefaultLevel,
+			logger.HighlightSegment("Gracefully"),
+			logger.InfoSegment(" stopping process with PID "),
+			logger.HighlightSegment(fmt.Sprintf("%d", pm.pid)),
+		)
+	}
 	if err := terminateProcess(pm.cmd); err != nil {
 		return pm.forceStop()
 	}
@@ -152,5 +175,18 @@ func (pm *ProcessManager) gracefulStop(timeout time.Duration) error {
 }
 
 func (pm *ProcessManager) forceStop() error {
-	return killProcess(pm.cmd)
+	if pm.IsRunning() {
+		pm.logger.MultiColor(logger.DefaultLevel,
+			logger.HighlightSegment("Force"),
+			logger.InfoSegment(" killing process with PID "),
+			logger.HighlightSegment(fmt.Sprintf("%d", pm.pid)),
+		)
+		err := killProcess(pm.cmd)
+		if err != nil && (err.Error() == "os: process already finished" || err.Error() == "process already finished") {
+			return nil
+		}
+		pm.pid = 0
+		return err
+	}
+	return nil
 }
