@@ -15,7 +15,7 @@ builds:
     ignore:
       - goos: windows
         goarch: arm64
-    main: ./cmd/pull-watch
+    main: .
     binary: pull-watch
     ldflags:
       - -s -w -X main.version={{.Version}}
