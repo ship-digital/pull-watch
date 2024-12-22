@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.4](https://github.com/ship-digital/pull-watch/compare/v1.5.3...v1.5.4) (2024-12-22)
+
+
+### Bug Fixes
+
+* Update winget package name in .goreleaser.yaml ([f59b5eb](https://github.com/ship-digital/pull-watch/commit/f59b5eb835c7c4da34984c65c133550fa000e68e))
+
 ## [1.5.3](https://github.com/ship-digital/pull-watch/compare/v1.5.2...v1.5.3) (2024-12-22)
 
 
