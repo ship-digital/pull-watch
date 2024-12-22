@@ -76,7 +76,7 @@ upx:
     goarch: [amd64, arm64]
 
 winget:
-  - name: ShipDigital.PullWatch
+  - name: PullWatch
     package_identifier: ShipDigital.PullWatch
     publisher: ShipDigital
     license: MIT
