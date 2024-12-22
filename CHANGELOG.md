@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.2](https://github.com/ship-digital/pull-watch/compare/v1.5.1...v1.5.2) (2024-12-22)
+
+
+### Bug Fixes
+
+* Update winget configuration in goreleaser ([bd019d1](https://github.com/ship-digital/pull-watch/commit/bd019d1078789f7ae35a78277e254fca58465f4d))
+
 ## [1.5.1](https://github.com/ship-digital/pull-watch/compare/v1.5.0...v1.5.1) (2024-12-22)
 
 
