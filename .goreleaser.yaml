@@ -90,6 +90,17 @@ winget:
       - monitor
       - automation
     release_notes: "{{.Changelog}}"
+    repository:
+      owner: ship-digital
+      name: winget-pkgs
+      branch: "{{.ProjectName}}-{{.Version}}"
+      pull_request:
+        enabled: true
+        base:
+          owner: microsoft
+          name: winget-pkgs
+          branch: master
+
 
 chocolateys:
   - name: pull-watch
