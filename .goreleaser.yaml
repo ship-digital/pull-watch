@@ -78,7 +78,7 @@ upx:
 winget:
   - name: ShipDigital.PullWatch
     package_identifier: ShipDigital.PullWatch
-    publisher: Ship Digital
+    publisher: ShipDigital
     license: MIT
     copyright: Copyright (c) 2024 Alessandro De Blasis - Ship Digital Ltd
     short_description: A tool that watches a git repository for changes and runs a specified command
