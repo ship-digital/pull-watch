@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/ship-digital/pull-watch/compare/v1.4.0...v1.5.0) (2024-12-22)
+
+
+### Features
+
+* Add version flag to MainCommand and update README ([0f8eae0](https://github.com/ship-digital/pull-watch/commit/0f8eae065668afcba3b9df396e4194e6ce59d468))
+
 ## [1.4.0](https://github.com/ship-digital/pull-watch/compare/v1.3.3...v1.4.0) (2024-12-11)
 
 
