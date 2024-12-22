@@ -75,6 +75,22 @@ upx:
     goos: [linux, windows]
     goarch: [amd64, arm64]
 
+winget:
+  - name: ShipDigital.PullWatch
+    publisher: Ship Digital
+    license: MIT
+    copyright: Copyright (c) 2024 Alessandro De Blasis - Ship Digital Ltd
+    short_description: A tool that watches a git repository for changes and runs a specified command
+    homepage: https://github.com/ship-digital/pull-watch
+    author: Alessandro De Blasis
+    tags:
+      - git
+      - pull
+      - watch
+      - monitor
+      - automation
+    release_notes: "{{.Changelog}}"
+
 chocolateys:
   - name: pull-watch
     title: "Pull Watch"
@@ -96,18 +112,3 @@ chocolateys:
     skip_publish: false
     icon_url: "https://raw.githubusercontent.com/ship-digital/pull-watch/main/assets/pull-watch-icon.png"
 
-winget:
-  - name: ShipDigital.PullWatch
-    publisher: Ship Digital
-    license: MIT
-    copyright: Copyright (c) 2024 Alessandro De Blasis - Ship Digital Ltd
-    short_description: A tool that watches a git repository for changes and runs a specified command
-    homepage: https://github.com/ship-digital/pull-watch
-    author: Alessandro De Blasis
-    tags:
-      - git
-      - pull
-      - watch
-      - monitor
-      - automation
-    release_notes: "{{.Changelog}}"
