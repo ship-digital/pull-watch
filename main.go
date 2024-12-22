@@ -30,6 +30,7 @@ type MainCommand struct {
 	stopTimeout   time.Duration
 	runOnStart    bool
 	showTimestamp bool
+	showVersion   bool
 }
 
 func (c *MainCommand) Run(args []string) int {
@@ -48,12 +49,6 @@ func (c *MainCommand) Run(args []string) int {
 		}
 	}
 
-	if cmdIndex == -1 {
-		c.ui.Error("Error: command separator '--' not found")
-		c.ui.Output(c.Help())
-		return 1
-	}
-
 	// Parse flags first
 	flags := flag.NewFlagSet("pull-watch", flag.ContinueOnError)
 	flags.SetOutput(io.Discard) // Suppress flag errors
@@ -65,9 +60,29 @@ func (c *MainCommand) Run(args []string) int {
 	flags.DurationVar(&c.stopTimeout, "stop-timeout", 5*time.Second, "Timeout for graceful stop before force kill")
 	flags.BoolVar(&c.runOnStart, "run-on-start", false, "Run command on startup regardless of git state")
 	flags.BoolVar(&c.showTimestamp, "timestamp", false, "Show timestamps in logs")
+	flags.BoolVar(&c.showVersion, "version", false, "Show version information")
 
-	// Parse only the flags before "--"
-	if err := flags.Parse(args[:cmdIndex]); err != nil {
+	// Parse flags before "--" or all flags if no "--" found
+	flagArgs := args
+	if cmdIndex != -1 {
+		flagArgs = args[:cmdIndex]
+	}
+	if err := flags.Parse(flagArgs); err != nil {
+		return 1
+	}
+
+	// Handle version flag
+	if c.showVersion {
+		versionCmd := &VersionCommand{
+			Version: version,
+			ui:      c.ui,
+		}
+		return versionCmd.Run(nil)
+	}
+
+	if cmdIndex == -1 {
+		c.ui.Error("Error: command separator '--' not found")
+		c.ui.Output(c.Help())
 		return 1
 	}
 
@@ -148,6 +163,7 @@ func (c *MainCommand) Help() string {
 	flags.DurationVar(&c.stopTimeout, "stop-timeout", 5*time.Second, "Timeout for graceful stop before force kill")
 	flags.BoolVar(&c.runOnStart, "run-on-start", false, "Run command on startup regardless of git state")
 	flags.BoolVar(&c.showTimestamp, "timestamp", false, "Show timestamps in logs")
+	flags.BoolVar(&c.showVersion, "version", false, "Show version information")
 
 	var buf strings.Builder
 	flags.SetOutput(&buf)
@@ -197,10 +213,7 @@ func main() {
 		ErrorWriter: os.Stderr,
 	}
 
-	// Create the command directly
-	cmd := &MainCommand{ui: ui}
-
-	// If first argument is "version", handle it specially
+	// Handle version subcommand
 	if len(os.Args) > 1 && os.Args[1] == "version" {
 		versionCmd := &VersionCommand{
 			Version: version,
@@ -209,7 +222,8 @@ func main() {
 		os.Exit(versionCmd.Run(nil))
 	}
 
-	// Pass all arguments to the main command
+	// Create the command directly
+	cmd := &MainCommand{ui: ui}
 	exitStatus := cmd.Run(os.Args[1:])
 	os.Exit(exitStatus)
 }

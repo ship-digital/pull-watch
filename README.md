@@ -59,13 +59,13 @@ choco install pull-watch
 ## 🎮 Usage
 
 ```
-
+  
   Usage: pull-watch [options] -- <command>
-
+  
    Watch git repository for remote changes and run commands.
-
+  
    It's like: 'git pull && <command>' but with polling and automatic process management.
-
+  
   Options:
     -git-dir string
       	Git repository directory (default ".")
@@ -83,7 +83,9 @@ choco install pull-watch
       	Show timestamps in logs
     -verbose
       	Enable verbose logging
-
+    -version
+      	Show version information
+  
 ```
 ## 🌟 Examples
 
