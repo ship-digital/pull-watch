@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/ship-digital/pull-watch/compare/v1.5.0...v1.5.1) (2024-12-22)
+
+
+### Bug Fixes
+
+* winget automated pull-request ([ab2a4e2](https://github.com/ship-digital/pull-watch/commit/ab2a4e20cbba87786093de1f9f4a3d263dfe0155))
+
 ## [1.5.0](https://github.com/ship-digital/pull-watch/compare/v1.4.0...v1.5.0) (2024-12-22)
 
 
