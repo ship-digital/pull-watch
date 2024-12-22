@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.3](https://github.com/ship-digital/pull-watch/compare/v1.5.2...v1.5.3) (2024-12-22)
+
+
+### Bug Fixes
+
+* Correct publisher name in winget configuration ([eea67b4](https://github.com/ship-digital/pull-watch/commit/eea67b486a38069e98f147a38c00b66019c64950))
+
 ## [1.5.2](https://github.com/ship-digital/pull-watch/compare/v1.5.1...v1.5.2) (2024-12-22)
 
 
