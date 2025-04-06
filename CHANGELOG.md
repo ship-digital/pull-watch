@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/ship-digital/pull-watch/compare/v1.5.4...v1.6.0) (2025-04-06)
+
+
+### Features
+
+* no-restart ([#33](https://github.com/ship-digital/pull-watch/issues/33)) ([ffa51fd](https://github.com/ship-digital/pull-watch/commit/ffa51fdb6eea9ff36d145b9b8e5291754a06f752))
+
 ## [1.5.4](https://github.com/ship-digital/pull-watch/compare/v1.5.3...v1.5.4) (2024-12-22)
 
 
