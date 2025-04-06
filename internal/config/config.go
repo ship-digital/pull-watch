@@ -16,4 +16,5 @@ type Config struct {
 	Logger        *logger.Logger
 	RunOnStart    bool
 	ShowTimestamp bool
+	NoRestart     bool
 }
