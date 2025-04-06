@@ -215,19 +215,28 @@ func checkAndUpdate(ctx context.Context, cfg *config.Config, repo git.Repository
 
 		*lastCommit = remoteHash
 
-		if err := pm.Stop(); err != nil {
-			pm.GetLogger().MultiColor(logger.DefaultLevel,
-				logger.ErrorSegment("Error stopping process with PID "),
-				logger.HighlightSegment(fmt.Sprintf("%d", pm.(*ProcessManager).GetPID())),
-				logger.ErrorSegment(": "),
-				logger.HighlightSegment(fmt.Sprintf("%v", err)),
-			)
-		}
+		// Restart logic is conditional based on the NoRestart flag
+		if !cfg.NoRestart {
+			pm.GetLogger().Info("Restarting command due to changes...")
+			if err := pm.Stop(); err != nil {
+				pm.GetLogger().MultiColor(logger.DefaultLevel,
+					logger.ErrorSegment("Error stopping process with PID "),
+					logger.HighlightSegment(fmt.Sprintf("%d", pm.(*ProcessManager).GetPID())),
+					logger.ErrorSegment(": "),
+					logger.HighlightSegment(fmt.Sprintf("%v", err)),
+				)
+				// Log the stop error, but proceed to attempt start
+			}
 
-		time.Sleep(100 * time.Millisecond)
+			time.Sleep(100 * time.Millisecond) // Brief pause for process termination
 
-		if err := pm.Start(); err != nil {
-			return fmt.Errorf("failed to restart command: %w", err)
+			if err := pm.Start(); err != nil {
+				// Starting error is critical, return it
+				pm.GetLogger().Error(fmt.Sprintf("Error starting command after changes: %v", err))
+				return fmt.Errorf("failed to restart command: %w", err)
+			}
+		} else {
+			pm.GetLogger().Info("NoRestart flag set, skipping command restart. Working directory updated.")
 		}
 	}
 

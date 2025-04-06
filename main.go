@@ -31,6 +31,20 @@ type MainCommand struct {
 	runOnStart    bool
 	showTimestamp bool
 	showVersion   bool
+	noRestart     bool
+}
+
+func (c *MainCommand) setupFlags(flags *flag.FlagSet) {
+	flags.DurationVar(&c.pollInterval, "interval", 15*time.Second, "Poll interval (e.g. 15s, 1m)")
+	flags.StringVar(&c.gitDir, "git-dir", ".", "Git repository directory")
+	flags.BoolVar(&c.verbose, "verbose", false, "Enable verbose logging")
+	flags.BoolVar(&c.quiet, "quiet", false, "Show only errors and warnings")
+	flags.BoolVar(&c.graceful, "graceful", false, "Try graceful stop before force kill")
+	flags.DurationVar(&c.stopTimeout, "stop-timeout", 5*time.Second, "Timeout for graceful stop before force kill")
+	flags.BoolVar(&c.runOnStart, "run-on-start", false, "Run command on startup regardless of git state")
+	flags.BoolVar(&c.showTimestamp, "timestamp", false, "Show timestamps in logs")
+	flags.BoolVar(&c.showVersion, "version", false, "Show version information")
+	flags.BoolVar(&c.noRestart, "no-restart", false, "Pull changes without restarting the command, useful if the command has a built-in auto-reload feature")
 }
 
 func (c *MainCommand) Run(args []string) int {
@@ -52,16 +66,7 @@ func (c *MainCommand) Run(args []string) int {
 	// Parse flags first
 	flags := flag.NewFlagSet("pull-watch", flag.ContinueOnError)
 	flags.SetOutput(io.Discard) // Suppress flag errors
-	flags.DurationVar(&c.pollInterval, "interval", 15*time.Second, "Poll interval (e.g. 15s, 1m)")
-	flags.StringVar(&c.gitDir, "git-dir", ".", "Git repository directory")
-	flags.BoolVar(&c.verbose, "verbose", false, "Enable verbose logging")
-	flags.BoolVar(&c.quiet, "quiet", false, "Show only errors and warnings")
-	flags.BoolVar(&c.graceful, "graceful", false, "Try graceful stop before force kill")
-	flags.DurationVar(&c.stopTimeout, "stop-timeout", 5*time.Second, "Timeout for graceful stop before force kill")
-	flags.BoolVar(&c.runOnStart, "run-on-start", false, "Run command on startup regardless of git state")
-	flags.BoolVar(&c.showTimestamp, "timestamp", false, "Show timestamps in logs")
-	flags.BoolVar(&c.showVersion, "version", false, "Show version information")
-
+	c.setupFlags(flags)
 	// Parse flags before "--" or all flags if no "--" found
 	flagArgs := args
 	if cmdIndex != -1 {
@@ -130,6 +135,7 @@ func (c *MainCommand) Run(args []string) int {
 		Logger:        c.log,
 		RunOnStart:    c.runOnStart,
 		ShowTimestamp: c.showTimestamp,
+		NoRestart:     c.noRestart,
 	}
 
 	if quietVerbose {
@@ -155,15 +161,7 @@ func (c *MainCommand) Run(args []string) int {
 
 func (c *MainCommand) Help() string {
 	flags := flag.NewFlagSet("", flag.ContinueOnError)
-	flags.DurationVar(&c.pollInterval, "interval", 15*time.Second, "Poll interval (e.g. 15s, 1m)")
-	flags.StringVar(&c.gitDir, "git-dir", ".", "Git repository directory")
-	flags.BoolVar(&c.verbose, "verbose", false, "Enable verbose logging")
-	flags.BoolVar(&c.quiet, "quiet", false, "Show only errors and warnings")
-	flags.BoolVar(&c.graceful, "graceful", false, "Try graceful stop before force kill")
-	flags.DurationVar(&c.stopTimeout, "stop-timeout", 5*time.Second, "Timeout for graceful stop before force kill")
-	flags.BoolVar(&c.runOnStart, "run-on-start", false, "Run command on startup regardless of git state")
-	flags.BoolVar(&c.showTimestamp, "timestamp", false, "Show timestamps in logs")
-	flags.BoolVar(&c.showVersion, "version", false, "Show version information")
+	c.setupFlags(flags)
 
 	var buf strings.Builder
 	flags.SetOutput(&buf)

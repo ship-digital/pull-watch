@@ -1,4 +1,3 @@
-
 ```
              _ _                      _       _
             | | |                    | |     | |
@@ -18,6 +17,7 @@ Your friendly neighborhood Git repository watchdog! 🐕
 Guards your watch, your time, avoids wasting it, get it? No? Never mind. I am just a dad. It's muscle memory at this point!
 
 ![Which way?](./assets/meme_castles.png)
+
 > **How it started**: 🔄 `git pull` && `./run.sh` && CTRL/CMD+C && `git pull` && `./run.sh` && CTRL/CMD+C && ♾️... 😵
 >
 > **How it's going**: `pull-watch -- ./run.sh`
@@ -73,6 +73,8 @@ choco install pull-watch
       	Try graceful stop before force kill
     -interval duration
       	Poll interval (e.g. 15s, 1m) (default 15s)
+    -no-restart
+      	Pull changes without restarting the command, useful if the command has a built-in auto-reload feature
     -quiet
       	Show only errors and warnings
     -run-on-start
@@ -90,30 +92,39 @@ choco install pull-watch
 ## 🌟 Examples
 
 ### Watch current directory and restart a server when changes are detected:
+
 Keep your server fresh and up-to-date!
+
 ```bash
 pull-watch -- go run main.go
 ```
 
 ### Watch specific directory with custom interval:
+
 For when you want to keep an eye on things from a distance...
+
 ```bash
 pull-watch -git-dir /path/to/repo -interval 1m -- npm start
 ```
 
 ### Force kill processes (default):
+
 The "no time for chitchat" approach
+
 ```bash
 pull-watch -- node server.js
 ```
 
 ### Graceful stop before force kill:
+
 For the gentler souls among us
+
 ```bash
 pull-watch -graceful -stop-timeout 10s -- ./my-server
 ```
 
 ### Watch with different logging levels:
+
 ```bash
 # Default mode - shows important info
 pull-watch -- npm start
