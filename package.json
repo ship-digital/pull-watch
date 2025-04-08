@@ -1,0 +1,45 @@
+{
+  "name": "@ship-digital/pull-watch",
+  "version": "0.0.0",
+  "description": "A tool that watches a git repository for changes and runs a specified command",
+  "license": "MIT",
+  "homepage": "https://github.com/ship-digital/pull-watch",
+  "author": {
+    "name": "Alessandro De Blasis",
+    "email": "alex@deblasis.net"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ship-digital/pull-watch.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ship-digital/pull-watch/issues"
+  },
+  "keywords": [
+    "git",
+    "pull",
+    "watch",
+    "monitor",
+    "automation",
+    "golang",
+    "cli"
+  ],
+  "bin": {
+    "pull-watch": "cli.js"
+  },
+  "files": [
+    "bin",
+    "README.md",
+    "LICENSE",
+    "postinstall.js",
+    "cli.js"
+  ],
+  "scripts": {
+    "postinstall": "node postinstall.js"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.10",
+    "tar": "^6.2.1",
+    "axios": "^1.6.8"
+  }
+}
