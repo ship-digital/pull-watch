@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0](https://github.com/ship-digital/pull-watch/compare/v1.6.0...v1.7.0) (2025-04-08)
+
+
+### Features
+
+* npm package ([#35](https://github.com/ship-digital/pull-watch/issues/35)) ([c5db6c0](https://github.com/ship-digital/pull-watch/commit/c5db6c0fcb72699c9c6a7a21ddd9e596152973b4))
+
 ## [1.6.0](https://github.com/ship-digital/pull-watch/compare/v1.5.4...v1.6.0) (2025-04-06)
 
 
