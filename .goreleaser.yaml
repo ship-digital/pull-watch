@@ -1,3 +1,5 @@
+version: 2
+
 before:
   hooks:
     - go mod tidy
@@ -21,8 +23,7 @@ builds:
       - -s -w -X main.version={{.Version}}
 
 archives:
-  - format: tar.gz
-    # this name template makes the OS and Arch compatible with the results of `uname`.
+  - id: default
     name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_
@@ -30,7 +31,9 @@ archives:
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
-    # use zip for windows archives
+    builds_info:
+      group: zip
+    # use zip for windows, tar.gz for everything else
     format_overrides:
       - goos: windows
         format: zip
@@ -51,7 +54,6 @@ changelog:
       - Merge pull request
       - Merge branch
 
-# .goreleaser.yaml
 brews:
   - name: pull-watch
     homepage: "https://github.com/ship-digital/pull-watch"
@@ -90,6 +92,9 @@ winget:
       - watch
       - monitor
       - automation
+    publisher_url: https://ship.digital
+    publisher_support_url: https://github.com/ship-digital/pull-watch/issues
+    license_url: https://github.com/ship-digital/pull-watch/blob/main/LICENSE
     release_notes: "{{.Changelog}}"
     repository:
       owner: ship-digital

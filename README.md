@@ -56,16 +56,30 @@ brew install pull-watch
 choco install pull-watch
 ```
 
+### NPM / NPX
+
+You can install it globally:
+
+```bash
+npm install -g @ship-digital/pull-watch
+```
+
+Or run it directly using npx:
+
+```bash
+npx @ship-digital/pull-watch -- <your_command>
+```
+
 ## 🎮 Usage
 
 ```
-  
+
   Usage: pull-watch [options] -- <command>
-  
+
    Watch git repository for remote changes and run commands.
-  
+
    It's like: 'git pull && <command>' but with polling and automatic process management.
-  
+
   Options:
     -git-dir string
       	Git repository directory (default ".")
@@ -87,8 +101,9 @@ choco install pull-watch
       	Enable verbose logging
     -version
       	Show version information
-  
+
 ```
+
 ## 🌟 Examples
 
 ### Watch current directory and restart a server when changes are detected:

@@ -2,3 +2,4 @@ dist/
 .choco/
 bin/*
 node_modules/
+winget-pkgs/
