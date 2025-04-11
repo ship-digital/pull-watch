@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.5](https://github.com/ship-digital/pull-watch/compare/v1.7.4...v1.7.5) (2025-04-11)
+
+
+### Bug Fixes
+
+* remove goreleaser workflow file ([#42](https://github.com/ship-digital/pull-watch/issues/42)) ([71d77f3](https://github.com/ship-digital/pull-watch/commit/71d77f300035f688371ac9026c40f0462cbce3c4))
+
 ## [1.7.4](https://github.com/ship-digital/pull-watch/compare/v1.7.3...v1.7.4) (2025-04-11)
 
 
