@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.11](https://github.com/ship-digital/pull-watch/compare/v1.7.10...v1.7.11) (2025-04-11)
+
+
+### Bug Fixes
+
+* **workflow:** remove redundant comments in release workflow ([#55](https://github.com/ship-digital/pull-watch/issues/55)) ([#55](https://github.com/ship-digital/pull-watch/issues/55)) ([b5e882b](https://github.com/ship-digital/pull-watch/commit/b5e882b423b87f0c674d44d7ea4258049a23efab))
+
 ## [1.7.10](https://github.com/ship-digital/pull-watch/compare/v1.7.9...v1.7.10) (2025-04-11)
 
 
