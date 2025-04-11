@@ -11,6 +11,7 @@ const TEMP_WORK_DIR = path.resolve(
   "npm-postinstall-temp-work"
 ); // Dir for temporary package building
 const GITHUB_REF = process.env.GITHUB_REF; // e.g., refs/tags/v1.2.3
+const RELEASE_TAG = process.env.RELEASE_TAG; // e.g., v1.2.3 - directly from workflow
 const NPM_TOKEN = process.env.NODE_AUTH_TOKEN;
 const NPM_PROVENANCE = process.env.NPM_CONFIG_PROVENANCE === "true";
 // --- End Configuration ---
@@ -27,9 +28,18 @@ function error(message) {
 }
 
 function getVersionFromTag(ref) {
+  // First try to use RELEASE_TAG if available
+  if (RELEASE_TAG) {
+    if (RELEASE_TAG.startsWith("v")) {
+      return RELEASE_TAG.substring(1); // Remove 'v' prefix
+    }
+    return RELEASE_TAG; // Use as-is if no 'v' prefix
+  }
+
+  // Fall back to GITHUB_REF
   if (!ref || !ref.startsWith("refs/tags/v")) {
     error(
-      `Invalid or missing GITHUB_REF tag: ${ref}. Must start with 'refs/tags/v'.`
+      `Invalid or missing GITHUB_REF tag: ${ref}. Must start with 'refs/tags/v' or set RELEASE_TAG env variable.`
     );
   }
   return ref.substring("refs/tags/v".length);
