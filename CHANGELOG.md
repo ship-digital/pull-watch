@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.12](https://github.com/ship-digital/pull-watch/compare/v1.7.11...v1.7.12) (2025-04-11)
+
+
+### Bug Fixes
+
+* **goreleaser:** remoced Chocolatey for false positive AV detection until fixed ([#57](https://github.com/ship-digital/pull-watch/issues/57)) ([f326afb](https://github.com/ship-digital/pull-watch/commit/f326afb3c2e5b9872f6083e3d75f9e1a863ab6bc))
+
 ## [1.7.11](https://github.com/ship-digital/pull-watch/compare/v1.7.10...v1.7.11) (2025-04-11)
 
 
