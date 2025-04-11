@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.8](https://github.com/ship-digital/pull-watch/compare/v1.7.7...v1.7.8) (2025-04-11)
+
+
+### Bug Fixes
+
+* simplify release command in workflow ([#48](https://github.com/ship-digital/pull-watch/issues/48)) ([10163af](https://github.com/ship-digital/pull-watch/commit/10163af95d94899e4e574084d062967f6fd1b65c))
+
 ## [1.7.7](https://github.com/ship-digital/pull-watch/compare/v1.7.6...v1.7.7) (2025-04-11)
 
 
