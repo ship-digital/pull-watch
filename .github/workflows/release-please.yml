@@ -365,8 +365,6 @@ jobs:
 
           BRANCH_NAME="pull-watch-${APP_VERSION_NO_V}"
           echo "Pushing manifest updates commit to branch ${BRANCH_NAME} in ${WINGET_REPO_OWNER}/${WINGET_REPO_NAME}..."
-          # Use the WINGET_GITHUB_TOKEN provided by the secrets for authentication to the winget repo
-          # Ensure the token has permissions to write to the fork.
           git push https://${COMMIT_AUTHOR_NAME}:${{ secrets.WINGET_GITHUB_TOKEN }}@github.com/${WINGET_REPO_OWNER}/${WINGET_REPO_NAME}.git HEAD:"${BRANCH_NAME}" --force-with-lease
 
           echo "Successfully pushed changes to winget fork branch ${BRANCH_NAME}."
