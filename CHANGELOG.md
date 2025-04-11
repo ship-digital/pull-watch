@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.10](https://github.com/ship-digital/pull-watch/compare/v1.7.9...v1.7.10) (2025-04-11)
+
+
+### Bug Fixes
+
+* **workflow:** update installer manifest handling in release workflow ([#52](https://github.com/ship-digital/pull-watch/issues/52)) ([f6e2b5e](https://github.com/ship-digital/pull-watch/commit/f6e2b5e726be8fde78835618513d4ac8d9c901a7))
+
 ## [1.7.9](https://github.com/ship-digital/pull-watch/compare/v1.7.8...v1.7.9) (2025-04-11)
 
 
