@@ -96,12 +96,12 @@ jobs:
         with:
           install-only: true
 
-      - name: Install Chocolatey
-        shell: powershell
-        run: |
-          Set-ExecutionPolicy Bypass -Scope Process -Force
-          [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-          iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+      # - name: Install Chocolatey
+      #   shell: powershell
+      #   run: |
+      #     Set-ExecutionPolicy Bypass -Scope Process -Force
+      #     [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+      #     iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
@@ -351,6 +351,12 @@ jobs:
             cd .. && exit 1
           fi
 
+          # Make sure we have the latest changes from the remote branch
+          BRANCH_NAME="pull-watch-${APP_VERSION_NO_V}"
+          echo "Fetching the latest changes from branch ${BRANCH_NAME}..."
+          git fetch https://${COMMIT_AUTHOR_NAME}:${{ secrets.WINGET_GITHUB_TOKEN }}@github.com/${WINGET_REPO_OWNER}/${WINGET_REPO_NAME}.git ${BRANCH_NAME}
+
+          # Create our changes on top of what's already there
           git add "$manifest_version_dir/"
 
           # Check if there are staged changes in the target directory
@@ -363,9 +369,13 @@ jobs:
           COMMIT_MSG="ci(winget): update manifests for ${TAG_NAME}"
           git commit -m "$COMMIT_MSG" -m "$SIGNOFF_LINE"
 
-          BRANCH_NAME="pull-watch-${APP_VERSION_NO_V}"
           echo "Pushing manifest updates commit to branch ${BRANCH_NAME} in ${WINGET_REPO_OWNER}/${WINGET_REPO_NAME}..."
-          git push https://${COMMIT_AUTHOR_NAME}:${{ secrets.WINGET_GITHUB_TOKEN }}@github.com/${WINGET_REPO_OWNER}/${WINGET_REPO_NAME}.git HEAD:"${BRANCH_NAME}" --force-with-lease
+          # Try to push normally first, if that fails, we'll need a more careful merge strategy
+          if ! git push https://${COMMIT_AUTHOR_NAME}:${{ secrets.WINGET_GITHUB_TOKEN }}@github.com/${WINGET_REPO_OWNER}/${WINGET_REPO_NAME}.git HEAD:"${BRANCH_NAME}"; then
+            echo "Simple push failed, attempting to merge remote changes first..."
+            git pull --rebase https://${COMMIT_AUTHOR_NAME}:${{ secrets.WINGET_GITHUB_TOKEN }}@github.com/${WINGET_REPO_OWNER}/${WINGET_REPO_NAME}.git ${BRANCH_NAME}
+            git push https://${COMMIT_AUTHOR_NAME}:${{ secrets.WINGET_GITHUB_TOKEN }}@github.com/${WINGET_REPO_OWNER}/${WINGET_REPO_NAME}.git HEAD:"${BRANCH_NAME}"
+          fi
 
           echo "Successfully pushed changes to winget fork branch ${BRANCH_NAME}."
           cd ..
