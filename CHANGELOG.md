@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.9](https://github.com/ship-digital/pull-watch/compare/v1.7.8...v1.7.9) (2025-04-11)
+
+
+### Bug Fixes
+
+* **publish-npm:** add RELEASE_TAG support for version determination ([#50](https://github.com/ship-digital/pull-watch/issues/50)) ([b103d2f](https://github.com/ship-digital/pull-watch/commit/b103d2fc6fddea68372cfb2636865d186a7a913a))
+
 ## [1.7.8](https://github.com/ship-digital/pull-watch/compare/v1.7.7...v1.7.8) (2025-04-11)
 
 
