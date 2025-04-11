@@ -295,9 +295,7 @@ jobs:
           WINGET_PUBLISHER: ShipDigital
           WINGET_PACKAGE: PullWatch
           WINGET_MIN_OS: "10.0.0.0"
-          WINGET_INSTALL_MODES_YAML: "['silent', 'silentWithProgress']"
           WINGET_UPGRADE_BEHAVIOR: "install"
-          WINGET_COMMANDS_YAML: "['pull-watch']"
         run: |
           #!/bin/bash
           set -eo pipefail
@@ -316,10 +314,10 @@ jobs:
           fi
 
           echo "Found installer manifest: $manifest_file"
-          yq e -i ".MinimumOSVersion = strenv(WINGET_MIN_OS)" "$manifest_file"
-          yq e -i ".InstallModes = load(strenv(WINGET_INSTALL_MODES_YAML))" "$manifest_file"
-          yq e -i ".UpgradeBehavior = strenv(WINGET_UPGRADE_BEHAVIOR)" "$manifest_file"
-          yq e -i ".Commands = load(strenv(WINGET_COMMANDS_YAML))" "$manifest_file"
+          yq e -i ".MinimumOSVersion = \"$WINGET_MIN_OS\"" "$manifest_file"
+          yq e -i ".InstallModes = [\"silent\", \"silentWithProgress\"]" "$manifest_file"
+          yq e -i ".UpgradeBehavior = \"$WINGET_UPGRADE_BEHAVIOR\"" "$manifest_file"
+          yq e -i ".Commands = [\"pull-watch\"]" "$manifest_file"
 
           echo "Installer manifest successfully enriched."
           echo "--- Updated Installer Manifest Content ---"
