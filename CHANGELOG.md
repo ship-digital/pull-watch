@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.13](https://github.com/ship-digital/pull-watch/compare/v1.7.12...v1.7.13) (2025-04-11)
+
+
+### Bug Fixes
+
+* **workflow:** enhance manifest update process in release workflow ([#59](https://github.com/ship-digital/pull-watch/issues/59)) ([e4f1674](https://github.com/ship-digital/pull-watch/commit/e4f1674844c3082c52914e0bbd8c3119e01a357a))
+
 ## [1.7.12](https://github.com/ship-digital/pull-watch/compare/v1.7.11...v1.7.12) (2025-04-11)
 
 
