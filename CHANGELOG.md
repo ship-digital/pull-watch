@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.7](https://github.com/ship-digital/pull-watch/compare/v1.7.6...v1.7.7) (2025-04-11)
+
+
+### Bug Fixes
+
+* specify shell for tag determination step in release workflow ([#46](https://github.com/ship-digital/pull-watch/issues/46)) ([0ea9f49](https://github.com/ship-digital/pull-watch/commit/0ea9f4982c8c0f13037df9f5a08f725538839095))
+
 ## [1.7.6](https://github.com/ship-digital/pull-watch/compare/v1.7.5...v1.7.6) (2025-04-11)
 
 
