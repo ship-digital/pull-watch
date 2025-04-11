@@ -31,10 +31,49 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           release-type: go
 
-  # This job runs GoReleaser *only* if release-please created a tag/release OR if manually triggered with a tag
-  goreleaser:
+  # New job to centralize tag determination and run condition
+  determine-release-info:
     needs: release-please
-    if: ${{ needs.release-please.outputs.release_created || (github.event_name == 'workflow_dispatch' && github.event.inputs.target_tag != '') }}
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+      tag_name: ${{ steps.check.outputs.tag_name }}
+      tag_name_no_v: ${{ steps.check.outputs.tag_name_no_v }}
+    steps:
+      - name: Check conditions and determine tag
+        id: check
+        run: |
+          SHOULD_RUN="false"
+          TARGET_TAG=""
+          TAG_NAME_NO_V=""
+
+          # Check if release-please created a release OR if manually triggered with a tag
+          if [[ "${{ needs.release-please.outputs.release_created }}" == "true" && -n "${{ needs.release-please.outputs.tag_name }}" ]]; then
+            echo "Condition met: Release created by release-please."
+            SHOULD_RUN="true"
+            TARGET_TAG="${{ needs.release-please.outputs.tag_name }}"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.target_tag }}" ]]; then
+            echo "Condition met: Manual workflow dispatch with target tag."
+            SHOULD_RUN="true"
+            TARGET_TAG="${{ github.event.inputs.target_tag }}"
+          else
+            echo "Condition not met. No release created and not a manual run with a tag."
+          fi
+
+          if [[ "$SHOULD_RUN" == "true" ]]; then
+            echo "Determined Target Tag: ${TARGET_TAG}"
+            TAG_NAME_NO_V="${TARGET_TAG#v}"
+            echo "Determined Target Tag (no v): ${TAG_NAME_NO_V}"
+          fi
+
+          echo "should_run=${SHOULD_RUN}" >> $GITHUB_OUTPUT
+          echo "tag_name=${TARGET_TAG}" >> $GITHUB_OUTPUT
+          echo "tag_name_no_v=${TAG_NAME_NO_V}" >> $GITHUB_OUTPUT
+
+  # This job runs GoReleaser *only* if the condition in determine-release-info is met
+  goreleaser:
+    needs: determine-release-info # Depends on the new job
+    if: ${{ needs.determine-release-info.outputs.should_run == 'true' }} # Use the output from the new job
     runs-on: windows-latest
     permissions:
       contents: write
@@ -64,30 +103,13 @@ jobs:
           [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
           iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
 
-      # Determine the tag to use for GoReleaser
-      - name: Determine Target Tag for GoReleaser
-        id: determine_tag
-        shell: bash
-        run: |
-          TARGET_TAG=""
-          if [[ "${{ needs.release-please.outputs.release_created }}" == "true" && -n "${{ needs.release-please.outputs.tag_name }}" ]]; then
-            echo "Using tag from release-please: ${{ needs.release-please.outputs.tag_name }}"
-            TARGET_TAG="${{ needs.release-please.outputs.tag_name }}"
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.target_tag }}" ]]; then
-            echo "Using tag from manual workflow dispatch: ${{ github.event.inputs.target_tag }}"
-            TARGET_TAG="${{ github.event.inputs.target_tag }}"
-          else
-            echo "Error: Could not determine target tag for GoReleaser."
-            exit 1
-          fi
-          echo "GORELEASER_TAG=${TARGET_TAG}" >> $GITHUB_OUTPUT
-
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
           version: v2
           workdir: .
+          # GoReleaser automatically uses the checked-out tag when run in this context
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -98,12 +120,13 @@ jobs:
       - name: Upload GoReleaser artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: goreleaser-artifacts-${{ steps.determine_tag.outputs.GORELEASER_TAG }}
+          # Use the tag name from the determine-release-info job output
+          name: goreleaser-artifacts-${{ needs.determine-release-info.outputs.tag_name }}
           path: dist/
 
   publish-npm:
-    needs: [release-please, goreleaser]
-    if: ${{ needs.release-please.outputs.release_created || (github.event_name == 'workflow_dispatch' && github.event.inputs.target_tag != '') }}
+    needs: [goreleaser, determine-release-info] # Depends on the new job
+    if: ${{ needs.determine-release-info.outputs.should_run == 'true' }} # Use the output from the new job
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -112,28 +135,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Determine the tag to use
-      - name: Get Target Tag Name
-        id: get_target_tag
-        run: |
-          TARGET_TAG=""
-          if [[ "${{ needs.release-please.outputs.release_created }}" == "true" && -n "${{ needs.release-please.outputs.tag_name }}" ]]; then
-            echo "Using tag from release-please: ${{ needs.release-please.outputs.tag_name }}"
-            TARGET_TAG="${{ needs.release-please.outputs.tag_name }}"
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.target_tag }}" ]]; then
-            echo "Using tag from manual workflow dispatch: ${{ github.event.inputs.target_tag }}"
-            TARGET_TAG="${{ github.event.inputs.target_tag }}"
-          else
-            echo "Error: Could not determine target tag for npm publish."
-            exit 1
-          fi
-          echo "TAG_NAME=${TARGET_TAG}" >> $GITHUB_OUTPUT
-          echo "TAG_NAME_NO_V=${TARGET_TAG#v}" >> $GITHUB_OUTPUT
-
       - name: Download GoReleaser artifacts
         uses: actions/download-artifact@v4
         with:
-          name: goreleaser-artifacts-${{ steps.get_target_tag.outputs.TAG_NAME }}
+          # Use the tag name from the determine-release-info job output
+          name: goreleaser-artifacts-${{ needs.determine-release-info.outputs.tag_name }}
           path: dist/
 
       - name: Set up Node.js
@@ -143,7 +149,8 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - name: Update package.json version
-        run: npm version --no-git-tag-version ${{ steps.get_target_tag.outputs.TAG_NAME_NO_V }}
+        # Use the tag name (no v) from the determine-release-info job output
+        run: npm version --no-git-tag-version ${{ needs.determine-release-info.outputs.tag_name_no_v }}
 
       - name: Install Node.js dependencies for publish script
         run: npm install
@@ -154,33 +161,18 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
-          RELEASE_TAG: ${{ steps.get_target_tag.outputs.TAG_NAME }}
+          # Use the tag name from the determine-release-info job output
+          RELEASE_TAG: ${{ needs.determine-release-info.outputs.tag_name }}
 
   update-winget-pr:
     name: Update Winget PR Manifest
-    needs: [release-please, goreleaser]
-    if: ${{ needs.release-please.outputs.release_created || (github.event_name == 'workflow_dispatch' && github.event.inputs.target_tag != '') }}
+    needs: [goreleaser, determine-release-info] # Depends on the new job
+    if: ${{ needs.determine-release-info.outputs.should_run == 'true' }} # Use the output from the new job
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      # Determine the tag to use
-      - name: Get Target Tag Name
-        id: get_target_tag
-        run: |
-          TARGET_TAG=""
-          if [[ "${{ needs.release-please.outputs.release_created }}" == "true" && -n "${{ needs.release-please.outputs.tag_name }}" ]]; then
-            echo "Using tag from release-please: ${{ needs.release-please.outputs.tag_name }}"
-            TARGET_TAG="${{ needs.release-please.outputs.tag_name }}"
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.target_tag }}" ]]; then
-            echo "Using tag from manual workflow dispatch: ${{ github.event.inputs.target_tag }}"
-            TARGET_TAG="${{ github.event.inputs.target_tag }}"
-          else
-            echo "Error: Could not determine target tag for Winget update."
-            exit 1
-          fi
-          echo "TAG_NAME=${TARGET_TAG}" >> $GITHUB_OUTPUT
-          echo "TAG_NAME_NO_V=${TARGET_TAG#v}" >> $GITHUB_OUTPUT
+      # Removed the redundant 'Get Target Tag Name' step
 
       - name: Install yq
         run: |
@@ -197,8 +189,9 @@ jobs:
       - name: Wait for Winget Manifests from GoReleaser
         id: wait_for_manifests
         env:
-          TARGET_TAG: ${{ steps.get_target_tag.outputs.TAG_NAME }}
-          APP_VERSION_NO_V: ${{ steps.get_target_tag.outputs.TAG_NAME_NO_V }}
+          # Use outputs from determine-release-info
+          TARGET_TAG: ${{ needs.determine-release-info.outputs.tag_name }}
+          APP_VERSION_NO_V: ${{ needs.determine-release-info.outputs.tag_name_no_v }}
           WINGET_PUBLISHER: ShipDigital
           WINGET_PACKAGE: PullWatch
           WINGET_REPO_OWNER: ship-digital
@@ -243,7 +236,8 @@ jobs:
 
       - name: Generate Locale Files from Templates
         env:
-          CURRENT_VERSION_NO_V: ${{ steps.get_target_tag.outputs.TAG_NAME_NO_V }}
+          # Use outputs from determine-release-info
+          CURRENT_VERSION_NO_V: ${{ needs.determine-release-info.outputs.tag_name_no_v }}
           WINGET_PUBLISHER: ShipDigital
           WINGET_PACKAGE: PullWatch
         run: |
@@ -296,7 +290,8 @@ jobs:
 
       - name: Enrich Winget Manifest (Installer)
         env:
-          APP_VERSION_NO_V: ${{ steps.get_target_tag.outputs.TAG_NAME_NO_V }}
+          # Use outputs from determine-release-info
+          APP_VERSION_NO_V: ${{ needs.determine-release-info.outputs.tag_name_no_v }}
           WINGET_PUBLISHER: ShipDigital
           WINGET_PACKAGE: PullWatch
           WINGET_MIN_OS: "10.0.0.0"
@@ -333,8 +328,9 @@ jobs:
 
       - name: Commit and Push Changes to Winget Fork
         env:
-          TAG_NAME: ${{ steps.get_target_tag.outputs.TAG_NAME }}
-          APP_VERSION_NO_V: ${{ steps.get_target_tag.outputs.TAG_NAME_NO_V }}
+          # Use outputs from determine-release-info
+          TAG_NAME: ${{ needs.determine-release-info.outputs.tag_name }}
+          APP_VERSION_NO_V: ${{ needs.determine-release-info.outputs.tag_name_no_v }}
           WINGET_PUBLISHER: ShipDigital
           WINGET_PACKAGE: PullWatch
           WINGET_REPO_OWNER: ship-digital
@@ -371,7 +367,9 @@ jobs:
 
           BRANCH_NAME="pull-watch-${TAG_NAME}"
           echo "Pushing manifest updates commit to branch ${BRANCH_NAME} in ${WINGET_REPO_OWNER}/${WINGET_REPO_NAME}..."
-          git push origin HEAD:"${BRANCH_NAME}" --force-with-lease
+          # Use the GITHUB_TOKEN provided by the workflow runner for authentication
+          # Ensure the token has permissions to write to the fork.
+          git push https://${COMMIT_AUTHOR_NAME}:${{ secrets.GITHUB_TOKEN }}@github.com/${WINGET_REPO_OWNER}/${WINGET_REPO_NAME}.git HEAD:"${BRANCH_NAME}" --force-with-lease
 
           echo "Successfully pushed changes to winget fork branch ${BRANCH_NAME}."
           cd ..
