@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.1](https://github.com/ship-digital/pull-watch/compare/v1.7.0...v1.7.1) (2025-04-11)
+
+
+### Bug Fixes
+
+* trigger patch release ([cc5632f](https://github.com/ship-digital/pull-watch/commit/cc5632f13a4e59bc97d9e948fa92752844371e46))
+
 ## [1.7.0](https://github.com/ship-digital/pull-watch/compare/v1.6.0...v1.7.0) (2025-04-08)
 
 
