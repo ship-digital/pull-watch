@@ -201,7 +201,7 @@ jobs:
           set -eo pipefail
           retries=5
           delay=15
-          branch_name="pull-watch-${TARGET_TAG}"
+          branch_name="pull-watch-${APP_VERSION_NO_V}"
           manifest_path="manifests/s/${WINGET_PUBLISHER}/${WINGET_PACKAGE}/${APP_VERSION_NO_V}/${WINGET_PUBLISHER}.${WINGET_PACKAGE}.installer.yaml"
           repo_url="https://github.com/${WINGET_REPO_OWNER}/${WINGET_REPO_NAME}.git"
 
@@ -365,7 +365,7 @@ jobs:
           COMMIT_MSG="ci(winget): update manifests for ${TAG_NAME}"
           git commit -m "$COMMIT_MSG" -m "$SIGNOFF_LINE"
 
-          BRANCH_NAME="pull-watch-${TAG_NAME}"
+          BRANCH_NAME="pull-watch-${APP_VERSION_NO_V}"
           echo "Pushing manifest updates commit to branch ${BRANCH_NAME} in ${WINGET_REPO_OWNER}/${WINGET_REPO_NAME}..."
           # Use the GITHUB_TOKEN provided by the workflow runner for authentication
           # Ensure the token has permissions to write to the fork.
