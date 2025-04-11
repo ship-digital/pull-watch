@@ -72,6 +72,7 @@ jobs:
       # Determine the tag to use for GoReleaser
       - name: Determine Target Tag for GoReleaser
         id: determine_tag
+        shell: bash
         run: |
           TARGET_TAG=""
           if [[ "${{ needs.release-please.outputs.release_created }}" == "true" && -n "${{ needs.release-please.outputs.tag_name }}" ]]; then
