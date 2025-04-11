@@ -50,12 +50,6 @@ brew tap ship-digital/tap
 brew install pull-watch
 ```
 
-### Chocolatey (Windows)
-
-```powershell
-choco install pull-watch
-```
-
 ### NPM / NPX
 
 You can install it globally:
