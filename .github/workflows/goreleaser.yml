@@ -64,7 +64,6 @@ jobs:
   publish-npm:
     needs: goreleaser
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/') # Run only for tags
     permissions:
       contents: read
       id-token: write
@@ -98,7 +97,6 @@ jobs:
     name: Update Winget PR Manifest
     needs: goreleaser
     runs-on: ubuntu-latest
-    if: success() && startsWith(github.ref, 'refs/tags/') # Run only on tag success
     steps:
       - name: Get Target Tag Name
         id: get_target_tag
