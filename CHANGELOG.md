@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.4](https://github.com/ship-digital/pull-watch/compare/v1.7.3...v1.7.4) (2025-04-11)
+
+
+### Bug Fixes
+
+* update GoReleaser workflow to include NPM_TOKEN in environment variables ([#40](https://github.com/ship-digital/pull-watch/issues/40)) ([35d77c9](https://github.com/ship-digital/pull-watch/commit/35d77c96a1f78f73e0255afa98c67932fad5326b))
+
 ## [1.7.1](https://github.com/ship-digital/pull-watch/compare/v1.7.0...v1.7.1) (2025-04-11)
 
 
