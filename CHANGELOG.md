@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.6](https://github.com/ship-digital/pull-watch/compare/v1.7.5...v1.7.6) (2025-04-11)
+
+
+### Bug Fixes
+
+* pin GoReleaser version in workflow ([#44](https://github.com/ship-digital/pull-watch/issues/44)) ([4586237](https://github.com/ship-digital/pull-watch/commit/45862370b83f62522810e31cf261e494e5be3b06))
+
 ## [1.7.5](https://github.com/ship-digital/pull-watch/compare/v1.7.4...v1.7.5) (2025-04-11)
 
 
