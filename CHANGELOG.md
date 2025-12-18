@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.1](https://github.com/ship-digital/pull-watch/compare/v1.8.0...v1.8.1) (2025-12-18)
+
+
+### Bug Fixes
+
+* **windows:** detect and respect system PowerShell execution policy ([6bdd5fc](https://github.com/ship-digital/pull-watch/commit/6bdd5fc98b4e80e5201a8640b81c951ff82b6ca8))
+
 ## [1.8.0](https://github.com/ship-digital/pull-watch/compare/v1.7.13...v1.8.0) (2025-12-18)
 
 
