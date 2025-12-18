@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.8.0](https://github.com/ship-digital/pull-watch/compare/v1.7.13...v1.8.0) (2025-12-18)
+
+
+### Features
+
+* enhance Windows script support with automatic interpreter detection ([6fed62d](https://github.com/ship-digital/pull-watch/commit/6fed62dfe8b59b0474f19b9887d13ed32acf734a))
+
+
+### Bug Fixes
+
+* **windows:** add support for PowerShell and batch script execution ([1b1dc97](https://github.com/ship-digital/pull-watch/commit/1b1dc97f67639cc6c8826eff4cf6fd67a065bd04))
+
 ## [1.7.13](https://github.com/ship-digital/pull-watch/compare/v1.7.12...v1.7.13) (2025-04-11)
 
 
