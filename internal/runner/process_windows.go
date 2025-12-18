@@ -5,12 +5,43 @@ package runner
 import (
 	"fmt"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"syscall"
 )
 
 func setProcessGroup(cmd *exec.Cmd) {
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+	}
+}
+
+// prepareCommand wraps script files with appropriate interpreters on Windows
+func prepareCommand(command []string) (string, []string) {
+	if len(command) == 0 {
+		return "", nil
+	}
+
+	executable := command[0]
+	args := command[1:]
+
+	// Get file extension
+	ext := strings.ToLower(filepath.Ext(executable))
+
+	switch ext {
+	case ".ps1":
+		// PowerShell script
+		newArgs := []string{"-File", executable}
+		newArgs = append(newArgs, args...)
+		return "powershell.exe", newArgs
+	case ".bat", ".cmd":
+		// Batch script
+		newArgs := []string{"/c", executable}
+		newArgs = append(newArgs, args...)
+		return "cmd.exe", newArgs
+	default:
+		// Regular executable
+		return executable, args
 	}
 }
 

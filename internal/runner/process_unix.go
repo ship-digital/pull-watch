@@ -14,6 +14,14 @@ func setProcessGroup(cmd *exec.Cmd) {
 	}
 }
 
+// prepareCommand returns the command as-is on Unix systems
+func prepareCommand(command []string) (string, []string) {
+	if len(command) == 0 {
+		return "", nil
+	}
+	return command[0], command[1:]
+}
+
 func terminateProcess(cmd *exec.Cmd) error {
 	if cmd.Process == nil {
 		return nil

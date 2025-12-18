@@ -75,7 +75,8 @@ func (pm *ProcessManager) Start() error {
 
 	pm.stopped = false
 	pm.doneChan = make(chan struct{})
-	pm.cmd = exec.Command(pm.cfg.Command[0], pm.cfg.Command[1:]...)
+	executable, args := prepareCommand(pm.cfg.Command)
+	pm.cmd = exec.Command(executable, args...)
 	pm.cmd.Stdout = os.Stdout
 	pm.cmd.Stderr = os.Stderr
 	pm.cmd.Stdin = os.Stdin
