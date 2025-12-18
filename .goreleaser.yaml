@@ -96,20 +96,12 @@ winget:
     publisher_support_url: https://github.com/ship-digital/pull-watch/issues
     license_url: https://github.com/ship-digital/pull-watch/blob/main/LICENSE
     release_notes: "{{.Changelog}}"
-    # Installer-specific properties
-    minimum_os_version: "10.0.0.0"
-    install_modes:
-      - silent
-      - silentWithProgress
-    upgrade_behavior: install
-    commands:
-      - pull-watch
     repository:
       owner: ship-digital
       name: winget-pkgs
       branch: "{{.ProjectName}}-{{.Version}}"
       pull_request:
-        enabled: true
+        enabled: false  # Disabled - PR created by workflow after manifest enrichment
         base:
           owner: microsoft
           name: winget-pkgs

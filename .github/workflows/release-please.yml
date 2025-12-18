@@ -379,3 +379,44 @@ jobs:
 
           echo "Successfully pushed changes to winget fork branch ${BRANCH_NAME}."
           cd ..
+
+      - name: Create Pull Request to Microsoft Winget
+        env:
+          TAG_NAME: ${{ needs.determine-release-info.outputs.tag_name }}
+          APP_VERSION_NO_V: ${{ needs.determine-release-info.outputs.tag_name_no_v }}
+          WINGET_PUBLISHER: ShipDigital
+          WINGET_PACKAGE: PullWatch
+          WINGET_REPO_OWNER: ship-digital
+          WINGET_REPO_NAME: winget-pkgs
+          GH_TOKEN: ${{ secrets.WINGET_GITHUB_TOKEN }}
+        run: |
+          #!/bin/bash
+          set -eo pipefail
+          cd winget-repo
+
+          BRANCH_NAME="pull-watch-${APP_VERSION_NO_V}"
+          PR_TITLE="${WINGET_PUBLISHER}.${WINGET_PACKAGE} version ${APP_VERSION_NO_V}"
+          PR_BODY="This PR updates ${WINGET_PACKAGE} to version ${APP_VERSION_NO_V}
+
+          Release notes: https://github.com/ship-digital/pull-watch/releases/tag/${TAG_NAME}"
+
+          echo "Creating pull request from ${WINGET_REPO_OWNER}:${BRANCH_NAME} to microsoft:master"
+
+          # Check if PR already exists
+          EXISTING_PR=$(gh pr list --repo microsoft/winget-pkgs --head "${WINGET_REPO_OWNER}:${BRANCH_NAME}" --json number --jq '.[0].number' || echo "")
+
+          if [[ -n "$EXISTING_PR" ]]; then
+            echo "Pull request already exists: #${EXISTING_PR}"
+            echo "PR URL: https://github.com/microsoft/winget-pkgs/pull/${EXISTING_PR}"
+          else
+            # Create the PR
+            gh pr create \
+              --repo microsoft/winget-pkgs \
+              --head "${WINGET_REPO_OWNER}:${BRANCH_NAME}" \
+              --base master \
+              --title "$PR_TITLE" \
+              --body "$PR_BODY"
+            echo "Pull request created successfully"
+          fi
+
+          cd ..
