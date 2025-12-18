@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.2](https://github.com/ship-digital/pull-watch/compare/v1.8.1...v1.8.2) (2025-12-18)
+
+
+### Bug Fixes
+
+* **winget:** add required installer properties to GoReleaser config ([d279ab4](https://github.com/ship-digital/pull-watch/commit/d279ab4a257e4344a3e6d1134f5594c780923f96))
+* **winget:** ensure manifest properties are added before PR creation ([f2b888f](https://github.com/ship-digital/pull-watch/commit/f2b888f613481dd3bea096a146ce930c575e6787))
+
 ## [1.8.1](https://github.com/ship-digital/pull-watch/compare/v1.8.0...v1.8.1) (2025-12-18)
 
 
